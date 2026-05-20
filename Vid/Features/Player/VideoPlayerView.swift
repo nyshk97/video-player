@@ -3,6 +3,7 @@ import SwiftUI
 struct VideoPlayerView: View {
     @State private var viewModel: VideoPlayerViewModel
     @State private var dragOffset: CGFloat = 0
+    @State private var showEditor: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     private let dismissThreshold: CGFloat = 120
@@ -30,6 +31,12 @@ struct VideoPlayerView: View {
         .onDisappear {
             viewModel.player.pause()
         }
+        .fullScreenCover(isPresented: $showEditor, onDismiss: {
+            // 編集画面から戻ったら再生位置をリセットしないが、停止状態に
+            viewModel.player.pause()
+        }) {
+            VideoEditorView(video: viewModel.video)
+        }
     }
 
     private var playerContent: some View {
@@ -42,8 +49,15 @@ struct VideoPlayerView: View {
             } else {
                 PlayerGestureLayer(viewModel: viewModel)
                 if viewModel.isOverlayVisible {
-                    PlayerControlsOverlay(viewModel: viewModel, onClose: { dismiss() })
-                        .transition(.opacity)
+                    PlayerControlsOverlay(
+                        viewModel: viewModel,
+                        onClose: { dismiss() },
+                        onEdit: {
+                            viewModel.player.pause()
+                            showEditor = true
+                        }
+                    )
+                    .transition(.opacity)
                 }
                 if let feedback = viewModel.seekFeedback {
                     SeekFeedbackView(seconds: feedback.seconds)

@@ -3,6 +3,7 @@ import SwiftUI
 struct PlayerControlsOverlay: View {
     @Bindable var viewModel: VideoPlayerViewModel
     let onClose: () -> Void
+    let onEdit: () -> Void
 
     private let rates: [Float] = [0.75, 1.0, 1.5, 2.0]
 
@@ -40,6 +41,17 @@ struct PlayerControlsOverlay: View {
             }
 
             Spacer()
+
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "scissors")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(10)
+                    .background(.black.opacity(0.4), in: Circle())
+            }
+            .padding(.trailing, 6)
 
             Menu {
                 ForEach(rates, id: \.self) { rate in
