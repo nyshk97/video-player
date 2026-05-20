@@ -200,6 +200,9 @@ final class VideoEditorViewModel {
             try await PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 request.addResource(with: .video, fileURL: tempURL, options: nil)
+                // 元動画の撮影日時を継承させず、書き出した瞬間を creationDate にする。
+                // これで一覧 (creationDate ASC) で最新位置に並び、写真アプリの挙動と揃う
+                request.creationDate = Date()
             }
             try? FileManager.default.removeItem(at: tempURL)
             exportCompleted = true
