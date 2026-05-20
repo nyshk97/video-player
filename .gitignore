@@ -1,0 +1,19 @@
+# Xcode generated
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+build/
+.build/
+*.xcuserdata/
+xcuserdata/
+*.xcuserstate
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# refs
+.refs/
