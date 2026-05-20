@@ -40,6 +40,10 @@ final class VideoPlayerViewModel {
     }
 
     func setUp() async {
+        // silent mode でも再生し、他のアプリの音声を中断する
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+        try? AVAudioSession.sharedInstance().setActive(true)
+
         let options = PHVideoRequestOptions()
         options.isNetworkAccessAllowed = true
         options.deliveryMode = .automatic

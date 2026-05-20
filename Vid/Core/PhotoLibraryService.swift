@@ -25,7 +25,8 @@ final class PhotoLibraryService {
 
     func fetchVideos() -> [VideoAsset] {
         let options = PHFetchOptions()
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        // 古い → 新しい順 (写真アプリと同じ。最新は一番下)
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
         let result = PHAsset.fetchAssets(with: .video, options: options)
         var videos: [VideoAsset] = []
         videos.reserveCapacity(result.count)

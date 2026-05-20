@@ -56,6 +56,7 @@ struct VideoLibraryView: View {
                 }
             }
         }
+        .defaultScrollAnchor(.bottom)
     }
 
     private var emptyState: some View {
