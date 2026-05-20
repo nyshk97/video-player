@@ -149,6 +149,21 @@ final class VideoPlayerViewModel {
             }
         }
     }
+
+    /// 動画を「最近削除した項目」へ移動。
+    /// 成功時のみ true を返す。ユーザーがシステム確認ダイアログでキャンセルした場合は false。
+    func deleteVideo() async -> Bool {
+        let asset = video.phAsset
+        player.pause()
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.deleteAssets([asset] as NSFastEnumeration)
+            }
+            return true
+        } catch {
+            return false
+        }
+    }
 }
 
 struct SeekFeedback: Equatable {

@@ -55,6 +55,12 @@ struct VideoPlayerView: View {
                         onEdit: {
                             viewModel.player.pause()
                             showEditor = true
+                        },
+                        onDelete: {
+                            Task {
+                                let ok = await viewModel.deleteVideo()
+                                if ok { dismiss() }
+                            }
                         }
                     )
                     .transition(.opacity)
