@@ -1,4 +1,4 @@
-name: VideoPlayer
+name: Vid
 options:
   bundleIdPrefix: com.d0ne1s
   deploymentTarget:
@@ -13,10 +13,10 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 schemes:
-  VideoPlayer:
+  Vid:
     build:
       targets:
-        VideoPlayer: all
+        Vid: all
     run:
       config: Debug
     test:
@@ -29,25 +29,27 @@ schemes:
       config: Release
 
 targets:
-  VideoPlayer:
+  Vid:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - path: VideoPlayer
+      - path: Vid
         excludes:
           - "**/.DS_Store"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.d0ne1s.VideoPlayer
-        PRODUCT_NAME: VideoPlayer
+        PRODUCT_BUNDLE_IDENTIFIER: com.d0ne1s.vid
+        PRODUCT_NAME: Vid
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"  # iPhone のみ
+        # 実機ビルド時は Xcode の Signing & Capabilities で Personal Team を選択する
+        CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "保存されている動画を一覧・再生するためにアクセス許可が必要です。"
-        INFOPLIST_KEY_CFBundleDisplayName: "動画プレイヤー"
+        INFOPLIST_KEY_CFBundleDisplayName: "Vid"
         SWIFT_EMIT_LOC_STRINGS: YES
         GENERATE_INFOPLIST_FILE: YES

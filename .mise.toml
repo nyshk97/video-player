@@ -7,19 +7,19 @@ run = "xcodegen generate"
 
 [tasks.build]
 description = "iOS Simulator 向けにビルド (iOS 26.5 simulator runtime 未インストールのため -sdk iphonesimulator で destination を回避)"
-run = "xcodebuild -project VideoPlayer.xcodeproj -scheme VideoPlayer -sdk iphonesimulator -configuration Debug build"
+run = "xcodebuild -project Vid.xcodeproj -scheme Vid -sdk iphonesimulator -configuration Debug build"
 
 [tasks.install]
 description = "起動中のシミュレータにアプリをインストール"
 run = """
-APP_PATH=$(xcodebuild -project VideoPlayer.xcodeproj -scheme VideoPlayer -destination 'generic/platform=iOS Simulator' -configuration Debug -showBuildSettings 2>/dev/null | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2}')
-xcrun simctl install booted "$APP_PATH/VideoPlayer.app"
+APP_PATH=$(xcodebuild -project Vid.xcodeproj -scheme Vid -destination 'generic/platform=iOS Simulator' -configuration Debug -showBuildSettings 2>/dev/null | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2}')
+xcrun simctl install booted "$APP_PATH/Vid.app"
 """
 
 [tasks.run]
 description = "ビルド → インストール → 起動 (シミュレータが起動済み前提)"
 depends = ["build", "install"]
-run = "xcrun simctl launch booted com.d0ne1s.VideoPlayer"
+run = "xcrun simctl launch booted com.d0ne1s.vid"
 
 [tasks.boot]
 description = "iPhone 17 シミュレータを起動"
@@ -29,5 +29,5 @@ open -a Simulator
 """
 
 [tasks.shot]
-description = "起動中シミュレータのスクリーンショットを /tmp/vp.png に保存"
-run = "xcrun simctl io booted screenshot /tmp/vp.png"
+description = "起動中シミュレータのスクリーンショットを /tmp/vid.png に保存"
+run = "xcrun simctl io booted screenshot /tmp/vid.png"

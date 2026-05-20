@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct VideoPlayerApp: App {
+struct VidApp: App {
     var body: some Scene {
         WindowGroup {
             VideoLibraryView()

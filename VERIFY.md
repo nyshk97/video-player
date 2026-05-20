@@ -6,7 +6,7 @@ iOS シミュレータ上で動作確認する手順。
 
 - Xcode 26.5 (iOS 26.5 SDK)
 - iOS Simulator 26.4 (Xcode 26.5 が想定する 26.5 simulator runtime は未インストール → `-sdk iphonesimulator` 指定で回避)
-- bundle id: `com.d0ne1s.VideoPlayer`
+- bundle id: `com.d0ne1s.vid`
 - ターゲット: iPhone (iOS 17.0+)
 - 写真ライブラリへの readWrite アクセス必須
 
@@ -88,11 +88,22 @@ xcrun simctl addmedia booted /tmp/vp-samples/*.mov
 ## スクリーンショット
 
 ```sh
-mise run shot   # /tmp/vp.png に保存
+mise run shot   # /tmp/vid.png に保存
 ```
 
 シミュレータ内のタップを CLI から自動化する手段はない (osascript はアクセシビリティ権限が必要)。
 タップ後の状態確認はユーザー手動 → AI 側でスクショ確認の流れで行う。
+
+## 実機への転送
+
+1. Xcode で `Vid.xcodeproj` を開く
+2. プロジェクト navigator → Vid target → Signing & Capabilities
+3. "Automatically manage signing" を ON
+4. Team で自分の Personal Team (無料 Apple ID) を選択
+5. Bundle ID が他人と衝突して signing 失敗する場合は `project.yml` の `PRODUCT_BUNDLE_IDENTIFIER` をユニークなものに変更 (例: `com.d0ne1s.vid.tsubasa`) → `mise run gen` で再生成
+6. iPhone を USB 接続 → Xcode の destination で選択 → ⌘R で実行
+7. 初回はデバイス側で「設定 → 一般 → VPN とデバイス管理 → 開発元を信頼」が必要
+8. Personal Team でビルドしたアプリは 7 日後に失効する。再起動するなら Xcode から再インストールする
 
 ## トラブルシューティング
 
