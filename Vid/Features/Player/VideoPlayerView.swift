@@ -32,12 +32,12 @@ struct VideoPlayerView: View {
             await viewModel.setUp()
         }
         .onDisappear {
-            viewModel.player.pause()
+            viewModel.pause()
             orientationManager.leavePlayer()
         }
         .fullScreenCover(isPresented: $showEditor, onDismiss: {
             // 編集画面から戻ったら再生位置をリセットしないが、停止状態に
-            viewModel.player.pause()
+            viewModel.pause()
             orientationManager.resumePlayerAfterEditor()
         }) {
             VideoEditorView(video: viewModel.video)
@@ -79,12 +79,30 @@ struct VideoPlayerView: View {
                     )
                     .transition(.opacity)
                 }
+                if viewModel.isTemporaryFastForwarding {
+                    temporaryFastForwardFeedback
+                        .transition(.opacity)
+                }
                 if let feedback = viewModel.seekFeedback {
                     SeekFeedbackView(seconds: feedback.seconds)
                         .id(feedback.id)
                 }
             }
         }
+    }
+
+    private var temporaryFastForwardFeedback: some View {
+        VStack {
+            Text("2x")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.black.opacity(0.5), in: Capsule())
+            Spacer()
+        }
+        .padding(.top, 72)
+        .allowsHitTesting(false)
     }
 
     private var backgroundOpacity: Double {
@@ -144,7 +162,7 @@ struct VideoPlayerView: View {
     private func openEditorAfterPortrait() {
         guard !isPreparingTransition else { return }
         isPreparingTransition = true
-        viewModel.player.pause()
+        viewModel.pause()
 
         Task { @MainActor in
             await orientationManager.requestPortraitBeforeTransition()

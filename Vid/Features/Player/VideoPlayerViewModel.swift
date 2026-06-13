@@ -12,6 +12,7 @@ final class VideoPlayerViewModel {
     var currentTime: TimeInterval = 0
     var duration: TimeInterval = 0
     var playbackRate: Float = 1.0
+    private(set) var isTemporaryFastForwarding: Bool = false
     var isOverlayVisible: Bool = false
     var loadError: String?
     var seekFeedback: SeekFeedback?
@@ -21,6 +22,7 @@ final class VideoPlayerViewModel {
     nonisolated(unsafe) private var rateObservation: NSKeyValueObservation?
     nonisolated(unsafe) private let playerRef: AVPlayer
     private var hideOverlayTask: Task<Void, Never>?
+    private var wasPlayingBeforeTemporaryFastForward: Bool = false
 
     init(video: VideoAsset) {
         self.video = video
@@ -88,14 +90,15 @@ final class VideoPlayerViewModel {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                self?.resetTemporaryFastForwardState()
                 self?.isPlaying = false
             }
         }
     }
 
     func togglePlayPause() {
-        if isPlaying {
-            player.pause()
+        if isPlaying || playerHasPlaybackIntent {
+            pause()
         } else {
             if currentTime >= duration - 0.05 {
                 player.seek(to: .zero)
@@ -117,9 +120,40 @@ final class VideoPlayerViewModel {
 
     func setRate(_ rate: Float) {
         playbackRate = rate
-        if isPlaying {
+        if isTemporaryFastForwarding {
+            return
+        }
+        if playerHasPlaybackIntent {
             player.rate = rate
         }
+    }
+
+    func beginTemporaryFastForward() {
+        guard !isTemporaryFastForwarding else { return }
+
+        wasPlayingBeforeTemporaryFastForward = playerHasPlaybackIntent && !hasReachedEnd
+        guard wasPlayingBeforeTemporaryFastForward else { return }
+
+        isTemporaryFastForwarding = true
+        player.rate = 2.0
+    }
+
+    func endTemporaryFastForward() {
+        let shouldRestoreRate = isTemporaryFastForwarding &&
+            wasPlayingBeforeTemporaryFastForward &&
+            playerHasPlaybackIntent &&
+            !hasReachedEnd
+
+        resetTemporaryFastForwardState()
+
+        if shouldRestoreRate {
+            player.rate = playbackRate
+        }
+    }
+
+    func pause() {
+        player.pause()
+        resetTemporaryFastForwardState()
     }
 
     func showOverlay() {
@@ -154,7 +188,7 @@ final class VideoPlayerViewModel {
     /// 成功時のみ true を返す。ユーザーがシステム確認ダイアログでキャンセルした場合は false。
     func deleteVideo() async -> Bool {
         let asset = video.phAsset
-        player.pause()
+        pause()
         do {
             try await PHPhotoLibrary.shared().performChanges {
                 PHAssetChangeRequest.deleteAssets([asset] as NSFastEnumeration)
@@ -163,6 +197,19 @@ final class VideoPlayerViewModel {
         } catch {
             return false
         }
+    }
+
+    private var playerHasPlaybackIntent: Bool {
+        player.rate != 0 || player.timeControlStatus != .paused
+    }
+
+    private var hasReachedEnd: Bool {
+        duration > 0 && currentTime >= duration - 0.05
+    }
+
+    private func resetTemporaryFastForwardState() {
+        isTemporaryFastForwarding = false
+        wasPlayingBeforeTemporaryFastForward = false
     }
 }
 

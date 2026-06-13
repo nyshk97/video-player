@@ -84,6 +84,7 @@ xcrun simctl addmedia booted /tmp/vp-samples/*.mov
 - 0.75 / 1 / 1.5 / 2 倍速の選択肢が出る
 - 選択するとボタンのラベルが切り替わる
 - 速度変更時に音声ピッチが不自然にならない (`audioTimePitchAlgorithm = .spectral`)
+- 1.5x を選択 → 動画画面を長押し → 押している間だけ 2x で再生 → 離すと 1.5x に戻る
 
 ### 向き切り替え
 
