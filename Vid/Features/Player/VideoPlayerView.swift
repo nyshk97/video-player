@@ -2,8 +2,10 @@ import SwiftUI
 
 struct VideoPlayerView: View {
     @State private var viewModel: VideoPlayerViewModel
+    @State private var orientationManager = OrientationManager.shared
     @State private var dragOffset: CGFloat = 0
     @State private var showEditor: Bool = false
+    @State private var isPreparingTransition: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     private let dismissThreshold: CGFloat = 120
@@ -26,14 +28,17 @@ struct VideoPlayerView: View {
         .animation(.easeInOut(duration: 0.18), value: viewModel.isOverlayVisible)
         .simultaneousGesture(dismissDragGesture)
         .task {
+            orientationManager.enterPlayer()
             await viewModel.setUp()
         }
         .onDisappear {
             viewModel.player.pause()
+            orientationManager.leavePlayer()
         }
         .fullScreenCover(isPresented: $showEditor, onDismiss: {
             // 編集画面から戻ったら再生位置をリセットしないが、停止状態に
             viewModel.player.pause()
+            orientationManager.resumePlayerAfterEditor()
         }) {
             VideoEditorView(video: viewModel.video)
         }
@@ -51,16 +56,25 @@ struct VideoPlayerView: View {
                 if viewModel.isOverlayVisible {
                     PlayerControlsOverlay(
                         viewModel: viewModel,
-                        onClose: { dismiss() },
+                        requestedOrientationLock: orientationManager.requestedLock,
+                        actualInterfaceOrientation: orientationManager.actualInterfaceOrientation,
+                        isOrientationRequestPending: orientationManager.isRequestPending,
+                        onClose: {
+                            startCloseAfterPortrait()
+                        },
                         onEdit: {
-                            viewModel.player.pause()
-                            showEditor = true
+                            openEditorAfterPortrait()
                         },
                         onDelete: {
                             Task {
                                 let ok = await viewModel.deleteVideo()
-                                if ok { dismiss() }
+                                if ok {
+                                    await closeAfterPortrait()
+                                }
                             }
+                        },
+                        onToggleOrientation: {
+                            orientationManager.togglePlayerOrientation()
                         }
                     )
                     .transition(.opacity)
@@ -93,7 +107,7 @@ struct VideoPlayerView: View {
             .onEnded { value in
                 if value.translation.height > dismissThreshold ||
                     value.predictedEndTranslation.height > 250 {
-                    dismiss()
+                    startCloseAfterPortrait()
                 } else {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         dragOffset = 0
@@ -109,8 +123,33 @@ struct VideoPlayerView: View {
                 .foregroundStyle(.white)
             Text(message)
                 .foregroundStyle(.white)
-            Button("戻る") { dismiss() }
+            Button("戻る") { startCloseAfterPortrait() }
                 .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private func startCloseAfterPortrait() {
+        Task { @MainActor in
+            await closeAfterPortrait()
+        }
+    }
+
+    private func closeAfterPortrait() async {
+        guard !isPreparingTransition else { return }
+        isPreparingTransition = true
+        await orientationManager.requestPortraitBeforeTransition()
+        dismiss()
+    }
+
+    private func openEditorAfterPortrait() {
+        guard !isPreparingTransition else { return }
+        isPreparingTransition = true
+        viewModel.player.pause()
+
+        Task { @MainActor in
+            await orientationManager.requestPortraitBeforeTransition()
+            showEditor = true
+            isPreparingTransition = false
         }
     }
 }

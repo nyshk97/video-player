@@ -48,7 +48,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "保存されている動画を一覧・再生するためにアクセス許可が必要です。"
         INFOPLIST_KEY_CFBundleDisplayName: "Vid"
         SWIFT_EMIT_LOC_STRINGS: YES

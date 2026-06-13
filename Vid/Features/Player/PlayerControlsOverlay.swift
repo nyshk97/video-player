@@ -1,10 +1,15 @@
 import SwiftUI
+import UIKit
 
 struct PlayerControlsOverlay: View {
     @Bindable var viewModel: VideoPlayerViewModel
+    let requestedOrientationLock: OrientationLock
+    let actualInterfaceOrientation: UIInterfaceOrientation
+    let isOrientationRequestPending: Bool
     let onClose: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let onToggleOrientation: () -> Void
 
     private let rates: [Float] = [0.75, 1.0, 1.5, 2.0]
 
@@ -26,6 +31,16 @@ struct PlayerControlsOverlay: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
+
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    orientationButton
+                }
+            }
+            .padding(.trailing, 18)
+            .padding(.bottom, 76)
         }
     }
 
@@ -118,11 +133,55 @@ struct PlayerControlsOverlay: View {
         }
     }
 
+    private var orientationButton: some View {
+        Button {
+            onToggleOrientation()
+            viewModel.scheduleOverlayHide()
+        } label: {
+            OrientationIcon(isLandscapePresentation: isLandscapePresentation)
+                .frame(width: 44, height: 44)
+                .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(.white.opacity(0.18), lineWidth: 1)
+                )
+        }
+        .disabled(isOrientationRequestPending)
+        .opacity(isOrientationRequestPending ? 0.55 : 1)
+        .accessibilityLabel(isLandscapePresentation ? "縦向きで表示" : "横向きで表示")
+    }
+
+    private var isLandscapePresentation: Bool {
+        if actualInterfaceOrientation == .unknown {
+            return requestedOrientationLock == .landscape
+        }
+        return actualInterfaceOrientation.isLandscape
+    }
+
     private func formatRate(_ rate: Float) -> String {
         if rate == floor(rate) {
             return String(format: "%.0fx", rate)
         }
         return String(format: "%.2gx", rate)
+    }
+}
+
+private struct OrientationIcon: View {
+    let isLandscapePresentation: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(.white, lineWidth: 2.2)
+                .frame(
+                    width: isLandscapePresentation ? 16 : 25,
+                    height: isLandscapePresentation ? 25 : 16
+                )
+
+            Image(systemName: isLandscapePresentation ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+        }
     }
 }
 
