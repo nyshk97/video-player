@@ -3,6 +3,7 @@ import UIKit
 
 struct PlayerGestureLayer: UIViewRepresentable {
     let viewModel: VideoPlayerViewModel
+    let isRightSide: Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -47,20 +48,24 @@ struct PlayerGestureLayer: UIViewRepresentable {
         context.coordinator.onSingleTap = {
             viewModel.toggleOverlay()
         }
-        context.coordinator.onDoubleTap = { isRightSide in
+        context.coordinator.onDoubleTap = {
             viewModel.seekRelative(seconds: isRightSide ? 10 : -10)
         }
         context.coordinator.onLongPressBegan = {
-            viewModel.beginTemporaryFastForward()
+            if isRightSide {
+                viewModel.beginTemporaryFastForward()
+            } else {
+                viewModel.beginTemporaryRewind()
+            }
         }
         context.coordinator.onLongPressEnded = {
-            viewModel.endTemporaryFastForward()
+            viewModel.endTemporaryLongPressPlayback()
         }
     }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var onSingleTap: () -> Void = {}
-        var onDoubleTap: (Bool) -> Void = { _ in }
+        var onDoubleTap: () -> Void = {}
         var onLongPressBegan: () -> Void = {}
         var onLongPressEnded: () -> Void = {}
         private var isLongPressActive: Bool = false
@@ -71,9 +76,8 @@ struct PlayerGestureLayer: UIViewRepresentable {
         }
 
         @objc func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
-            guard recognizer.state == .ended, let view = recognizer.view else { return }
-            let location = recognizer.location(in: view)
-            onDoubleTap(location.x >= view.bounds.midX)
+            guard recognizer.state == .ended else { return }
+            onDoubleTap()
         }
 
         @objc func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {

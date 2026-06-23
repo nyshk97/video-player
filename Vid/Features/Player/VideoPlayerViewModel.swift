@@ -13,6 +13,7 @@ final class VideoPlayerViewModel {
     var duration: TimeInterval = 0
     var playbackRate: Float = 1.0
     private(set) var isTemporaryFastForwarding: Bool = false
+    private(set) var isTemporaryRewinding: Bool = false
     var isOverlayVisible: Bool = false
     var loadError: String?
     var seekFeedback: SeekFeedback?
@@ -20,9 +21,15 @@ final class VideoPlayerViewModel {
     nonisolated(unsafe) private var timeObserver: Any?
     nonisolated(unsafe) private var endObserver: NSObjectProtocol?
     nonisolated(unsafe) private var rateObservation: NSKeyValueObservation?
+    nonisolated(unsafe) private var temporaryRewindTask: Task<Void, Never>?
     nonisolated(unsafe) private let playerRef: AVPlayer
     private var hideOverlayTask: Task<Void, Never>?
     private var wasPlayingBeforeTemporaryFastForward: Bool = false
+    private var wasPlayingBeforeTemporaryRewind: Bool = false
+    private var temporaryRewindTargetTime: TimeInterval = 0
+
+    private let temporaryRewindInterval: TimeInterval = 0.1
+    private let temporaryRewindRate: TimeInterval = 2.0
 
     init(video: VideoAsset) {
         self.video = video
@@ -39,6 +46,7 @@ final class VideoPlayerViewModel {
             NotificationCenter.default.removeObserver(endObserver)
         }
         rateObservation?.invalidate()
+        temporaryRewindTask?.cancel()
     }
 
     func setUp() async {
@@ -90,13 +98,17 @@ final class VideoPlayerViewModel {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.resetTemporaryFastForwardState()
+                self?.resetTemporaryLongPressPlaybackState()
                 self?.isPlaying = false
             }
         }
     }
 
     func togglePlayPause() {
+        if isTemporaryFastForwarding || isTemporaryRewinding {
+            pause()
+            return
+        }
         if isPlaying || playerHasPlaybackIntent {
             pause()
         } else {
@@ -110,6 +122,7 @@ final class VideoPlayerViewModel {
     func seek(to seconds: TimeInterval) {
         let target = max(0, min(seconds, duration))
         let time = CMTime(seconds: target, preferredTimescale: 600)
+        currentTime = target
         player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
     }
 
@@ -120,7 +133,7 @@ final class VideoPlayerViewModel {
 
     func setRate(_ rate: Float) {
         playbackRate = rate
-        if isTemporaryFastForwarding {
+        if isTemporaryFastForwarding || isTemporaryRewinding {
             return
         }
         if playerHasPlaybackIntent {
@@ -129,7 +142,7 @@ final class VideoPlayerViewModel {
     }
 
     func beginTemporaryFastForward() {
-        guard !isTemporaryFastForwarding else { return }
+        guard !isTemporaryFastForwarding, !isTemporaryRewinding else { return }
 
         wasPlayingBeforeTemporaryFastForward = playerHasPlaybackIntent && !hasReachedEnd
         guard wasPlayingBeforeTemporaryFastForward else { return }
@@ -151,9 +164,38 @@ final class VideoPlayerViewModel {
         }
     }
 
+    func beginTemporaryRewind() {
+        guard !isTemporaryFastForwarding, !isTemporaryRewinding else { return }
+
+        wasPlayingBeforeTemporaryRewind = playerHasPlaybackIntent && !hasReachedEnd
+        guard wasPlayingBeforeTemporaryRewind else { return }
+
+        isTemporaryRewinding = true
+        temporaryRewindTargetTime = currentTime
+        player.pause()
+        startTemporaryRewindTask()
+    }
+
+    func endTemporaryRewind() {
+        let shouldResume = isTemporaryRewinding &&
+            wasPlayingBeforeTemporaryRewind &&
+            !hasReachedEnd
+
+        resetTemporaryRewindState()
+
+        if shouldResume {
+            player.playImmediately(atRate: playbackRate)
+        }
+    }
+
+    func endTemporaryLongPressPlayback() {
+        endTemporaryFastForward()
+        endTemporaryRewind()
+    }
+
     func pause() {
         player.pause()
-        resetTemporaryFastForwardState()
+        resetTemporaryLongPressPlaybackState()
     }
 
     func showOverlay() {
@@ -210,6 +252,41 @@ final class VideoPlayerViewModel {
     private func resetTemporaryFastForwardState() {
         isTemporaryFastForwarding = false
         wasPlayingBeforeTemporaryFastForward = false
+    }
+
+    private func startTemporaryRewindTask() {
+        temporaryRewindTask?.cancel()
+        let intervalNanoseconds = UInt64(temporaryRewindInterval * 1_000_000_000)
+        temporaryRewindTask = Task { [weak self] in
+            while !Task.isCancelled {
+                let shouldContinue = await MainActor.run { [weak self] in
+                    guard let self, self.isTemporaryRewinding else { return false }
+                    return self.stepTemporaryRewind()
+                }
+                guard shouldContinue else { return }
+                try? await Task.sleep(nanoseconds: intervalNanoseconds)
+            }
+        }
+    }
+
+    private func stepTemporaryRewind() -> Bool {
+        let distance = temporaryRewindRate * temporaryRewindInterval
+        temporaryRewindTargetTime = max(0, temporaryRewindTargetTime - distance)
+        seek(to: temporaryRewindTargetTime)
+        return temporaryRewindTargetTime > 0
+    }
+
+    private func resetTemporaryRewindState() {
+        temporaryRewindTask?.cancel()
+        temporaryRewindTask = nil
+        isTemporaryRewinding = false
+        wasPlayingBeforeTemporaryRewind = false
+        temporaryRewindTargetTime = 0
+    }
+
+    private func resetTemporaryLongPressPlaybackState() {
+        resetTemporaryFastForwardState()
+        resetTemporaryRewindState()
     }
 }
 

@@ -52,7 +52,7 @@ struct VideoPlayerView: View {
             if let error = viewModel.loadError {
                 errorOverlay(error)
             } else {
-                PlayerGestureLayer(viewModel: viewModel)
+                gestureLayer
                 if viewModel.isOverlayVisible {
                     PlayerControlsOverlay(
                         viewModel: viewModel,
@@ -79,8 +79,8 @@ struct VideoPlayerView: View {
                     )
                     .transition(.opacity)
                 }
-                if viewModel.isTemporaryFastForwarding {
-                    temporaryFastForwardFeedback
+                if viewModel.isTemporaryFastForwarding || viewModel.isTemporaryRewinding {
+                    temporaryPlaybackFeedback(text: viewModel.isTemporaryRewinding ? "-2x" : "2x")
                         .transition(.opacity)
                 }
                 if let feedback = viewModel.seekFeedback {
@@ -91,9 +91,19 @@ struct VideoPlayerView: View {
         }
     }
 
-    private var temporaryFastForwardFeedback: some View {
+    private var gestureLayer: some View {
+        HStack(spacing: 0) {
+            PlayerGestureLayer(viewModel: viewModel, isRightSide: false)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            PlayerGestureLayer(viewModel: viewModel, isRightSide: true)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .ignoresSafeArea()
+    }
+
+    private func temporaryPlaybackFeedback(text: String) -> some View {
         VStack {
-            Text("2x")
+            Text(text)
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)

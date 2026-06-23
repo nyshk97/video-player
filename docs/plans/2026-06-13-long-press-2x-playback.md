@@ -78,6 +78,9 @@ YouTube と同じように、動画再生画面を長押ししている間だけ
 
 ### 試したこと・わかったこと
 
+- 2026-06-20: 長押し開始位置を左右で判定し、右半分は一時2倍速、左半分は0.1秒間隔で約2x相当の巻き戻しシークを行う実装に変更した。
+- 2026-06-20: `temporaryRewindTask` を `nonisolated` に変えると `@Observable` の展開後に mutable stored property 扱いでビルド失敗したため、既存方針に合わせて `nonisolated(unsafe)` に戻した。
+- 2026-06-21: Simulator で左長押しが右扱いになる報告を受け、座標判定を廃止して左半分/右半分を別々の `PlayerGestureLayer` として配置する実装へ変更した。
 - 2026-06-13: `mise run build` が成功した。Xcode の既存 `nonisolated(unsafe)` warning は残るが、今回変更によるビルドエラーはない。
 - 2026-06-13: `mise run run` で Simulator へインストール・起動でき、動画一覧からプレイヤー画面へ遷移できることを確認した。
 - 2026-06-13: CoreGraphics 経由のクリックでプレイヤー画面のシングルタップ overlay 表示は確認できた。
@@ -86,6 +89,7 @@ YouTube と同じように、動画再生画面を長押ししている間だけ
 
 ### 方針変更
 
+- 2026-06-20: 長押しは全画面一律の一時2倍速ではなく、開始位置が右半分なら2倍速、左半分なら巻き戻しに分岐する方針へ変更した。巻き戻しは負の `AVPlayer.rate` に依存せず、対応差を避けるため定期的なシークで実現する。
 - 2026-06-13: 計画レビューを反映し、一時2倍速中の `setRate(_:)` は `playbackRate` だけ更新し、終了時は常に最新の `playbackRate` へ戻す方針に明確化した。
 - 2026-06-13: `isPlaying` は `AVPlayer.rate` の KVO 由来で境界条件に弱いため、長押し開始時の `wasPlayingBeforeTemporaryFastForward` と終了時の pause / 動画終了チェックを追加する方針にした。
 - 2026-06-13: ジェスチャー実装は SwiftUI の `LongPressGesture` + `DragGesture` の sequenced gesture を第一候補にし、cancel 検知が不安定なら `UILongPressGestureRecognizer` へ切り替える方針にした。
