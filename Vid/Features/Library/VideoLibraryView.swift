@@ -2,19 +2,29 @@ import SwiftUI
 import Photos
 
 struct VideoLibraryView: View {
+    @AppStorage("videoSortMode") private var storedSortModeRawValue = VideoSortMode.creationDate.rawValue
     @State private var viewModel = VideoLibraryViewModel()
     @State private var playerSession: PlayerSession?
+    @State private var scrollToBottomRequestID = 0
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 5)
+    private let bottomAnchorID = "video-library-bottom-anchor"
 
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle("動画")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    if canShowSortMenu {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            sortMenu
+                        }
+                    }
+                }
         }
         .task {
-            await viewModel.bootstrap()
+            await viewModel.bootstrap(sortMode: effectiveSortMode)
         }
         .fullScreenCover(item: $playerSession) { session in
             if let initialVideo = initialVideo(for: session) {
@@ -58,20 +68,79 @@ struct VideoLibraryView: View {
         let scale = UIScreen.main.scale
         let pixelSize = CGSize(width: cellSide * scale, height: cellSide * scale)
 
-        return ScrollView {
-            LazyVGrid(columns: columns, spacing: 2) {
-                ForEach(Array(viewModel.videos.enumerated()), id: \.element.id) { index, video in
-                    VideoThumbnailCell(video: video, pixelSize: pixelSize)
-                        .onTapGesture {
-                            playerSession = PlayerSession(
-                                initialVideoID: video.id,
-                                initialIndex: index
-                            )
-                        }
+        return ScrollViewReader { proxy in
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 2) {
+                    ForEach(Array(viewModel.videos.enumerated()), id: \.element.id) { index, video in
+                        VideoThumbnailCell(video: video, pixelSize: pixelSize)
+                            .onTapGesture {
+                                playerSession = PlayerSession(
+                                    initialVideoID: video.id,
+                                    initialIndex: index
+                                )
+                            }
+                    }
+                    Color.clear
+                        .frame(height: 1)
+                        .id(bottomAnchorID)
                 }
             }
+            .defaultScrollAnchor(.bottom)
+            .onChange(of: scrollToBottomRequestID) { _, _ in
+                scrollToBottom(with: proxy)
+            }
         }
-        .defaultScrollAnchor(.bottom)
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            Picker("並び順", selection: sortModeBinding) {
+                ForEach(VideoSortMode.availableModes) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+        }
+        .accessibilityLabel("並び順")
+    }
+
+    private var sortModeBinding: Binding<VideoSortMode> {
+        Binding(
+            get: {
+                effectiveSortMode
+            },
+            set: { newValue in
+                storedSortModeRawValue = newValue.rawValue
+                Task {
+                    await applySortMode(newValue)
+                }
+            }
+        )
+    }
+
+    private var effectiveSortMode: VideoSortMode {
+        VideoSortMode.effectiveMode(rawValue: storedSortModeRawValue)
+    }
+
+    private var canShowSortMenu: Bool {
+        viewModel.authorizationStatus == .authorized ||
+            viewModel.authorizationStatus == .limited
+    }
+
+    private func applySortMode(_ sortMode: VideoSortMode) async {
+        let effectiveMode = sortMode.effectiveMode
+        guard effectiveMode != viewModel.currentSortMode else { return }
+        await viewModel.load(sortMode: effectiveMode)
+        scrollToBottomRequestID += 1
+    }
+
+    private func scrollToBottom(with proxy: ScrollViewProxy) {
+        DispatchQueue.main.async {
+            withAnimation(.easeOut(duration: 0.2)) {
+                proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+            }
+        }
     }
 
     private var emptyState: some View {

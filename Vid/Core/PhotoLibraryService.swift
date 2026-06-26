@@ -23,10 +23,12 @@ final class PhotoLibraryService {
         }
     }
 
-    func fetchVideos() -> [VideoAsset] {
+    func fetchVideos(sortMode: VideoSortMode = .creationDate) -> [VideoAsset] {
         let options = PHFetchOptions()
-        // 古い → 新しい順 (写真アプリと同じ。最新は一番下)
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+        // 古い → 新しい順。最新は一覧の一番下に来る。
+        options.sortDescriptors = [
+            NSSortDescriptor(key: sortDescriptorKey(for: sortMode), ascending: true)
+        ]
         let result = PHAsset.fetchAssets(with: .video, options: options)
         var videos: [VideoAsset] = []
         videos.reserveCapacity(result.count)
@@ -34,6 +36,18 @@ final class PhotoLibraryService {
             videos.append(VideoAsset(phAsset: asset))
         }
         return videos
+    }
+
+    private func sortDescriptorKey(for sortMode: VideoSortMode) -> String {
+        switch sortMode.effectiveMode {
+        case .creationDate:
+            return "creationDate"
+        case .libraryAddedDate:
+            if #available(iOS 26.0, *) {
+                return "addedDate"
+            }
+            return "creationDate"
+        }
     }
 
     func requestThumbnail(

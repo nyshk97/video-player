@@ -9,6 +9,7 @@ final class VideoLibraryViewModel: NSObject, PHPhotoLibraryChangeObserver {
     var videos: [VideoAsset] = []
     var authorizationStatus: PHAuthorizationStatus = .notDetermined
     var isLoading: Bool = false
+    private(set) var currentSortMode: VideoSortMode = .creationDate
 
     private let service = PhotoLibraryService.shared
     nonisolated(unsafe) private var isObserving = false
@@ -23,7 +24,8 @@ final class VideoLibraryViewModel: NSObject, PHPhotoLibraryChangeObserver {
         }
     }
 
-    func bootstrap() async {
+    func bootstrap(sortMode: VideoSortMode = .creationDate) async {
+        currentSortMode = sortMode.effectiveMode
         authorizationStatus = service.currentAuthorizationStatus()
         switch authorizationStatus {
         case .notDetermined:
@@ -46,11 +48,15 @@ final class VideoLibraryViewModel: NSObject, PHPhotoLibraryChangeObserver {
         PHPhotoLibrary.shared().register(self)
     }
 
-    func load() async {
+    func load(sortMode: VideoSortMode? = nil) async {
+        if let sortMode {
+            currentSortMode = sortMode.effectiveMode
+        }
+        let effectiveSortMode = currentSortMode
         isLoading = true
         defer { isLoading = false }
         let fetched = await Task.detached(priority: .userInitiated) { @MainActor in
-            PhotoLibraryService.shared.fetchVideos()
+            PhotoLibraryService.shared.fetchVideos(sortMode: effectiveSortMode)
         }.value
         videos = fetched
     }
