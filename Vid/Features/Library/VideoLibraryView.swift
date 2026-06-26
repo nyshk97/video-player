@@ -3,7 +3,7 @@ import Photos
 
 struct VideoLibraryView: View {
     @State private var viewModel = VideoLibraryViewModel()
-    @State private var selectedVideo: VideoAsset?
+    @State private var playerSession: PlayerSession?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 5)
 
@@ -16,8 +16,20 @@ struct VideoLibraryView: View {
         .task {
             await viewModel.bootstrap()
         }
-        .fullScreenCover(item: $selectedVideo) { video in
-            VideoPlayerView(video: video)
+        .fullScreenCover(item: $playerSession) { session in
+            if let initialVideo = initialVideo(for: session) {
+                VideoPlayerView(
+                    videos: viewModel.videos,
+                    initialVideo: initialVideo,
+                    initialIndex: session.initialIndex
+                )
+            } else {
+                Color.black
+                    .ignoresSafeArea()
+                    .task {
+                        playerSession = nil
+                    }
+            }
         }
     }
 
@@ -48,10 +60,13 @@ struct VideoLibraryView: View {
 
         return ScrollView {
             LazyVGrid(columns: columns, spacing: 2) {
-                ForEach(viewModel.videos) { video in
+                ForEach(Array(viewModel.videos.enumerated()), id: \.element.id) { index, video in
                     VideoThumbnailCell(video: video, pixelSize: pixelSize)
                         .onTapGesture {
-                            selectedVideo = video
+                            playerSession = PlayerSession(
+                                initialVideoID: video.id,
+                                initialIndex: index
+                            )
                         }
                 }
             }
@@ -89,4 +104,20 @@ struct VideoLibraryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    private func initialVideo(for session: PlayerSession) -> VideoAsset? {
+        if let video = viewModel.videos.first(where: { $0.id == session.initialVideoID }) {
+            return video
+        }
+        if viewModel.videos.indices.contains(session.initialIndex) {
+            return viewModel.videos[session.initialIndex]
+        }
+        return viewModel.videos.first
+    }
+}
+
+private struct PlayerSession: Identifiable {
+    let id = UUID()
+    let initialVideoID: String
+    let initialIndex: Int
 }

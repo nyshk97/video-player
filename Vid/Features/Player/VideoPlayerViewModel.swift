@@ -6,7 +6,7 @@ import Photos
 @MainActor
 @Observable
 final class VideoPlayerViewModel {
-    let video: VideoAsset
+    private(set) var video: VideoAsset
     private(set) var player: AVPlayer = AVPlayer()
     var isPlaying: Bool = false
     var currentTime: TimeInterval = 0
@@ -14,19 +14,24 @@ final class VideoPlayerViewModel {
     var playbackRate: Float = 1.0
     private(set) var isTemporaryFastForwarding: Bool = false
     private(set) var isTemporaryRewinding: Bool = false
+    private(set) var isLoadingNextVideo: Bool = false
     var isOverlayVisible: Bool = false
     var loadError: String?
+    var navigationMessage: String?
     var seekFeedback: SeekFeedback?
 
     nonisolated(unsafe) private var timeObserver: Any?
     nonisolated(unsafe) private var endObserver: NSObjectProtocol?
     nonisolated(unsafe) private var rateObservation: NSKeyValueObservation?
     nonisolated(unsafe) private var temporaryRewindTask: Task<Void, Never>?
+    nonisolated(unsafe) private var activeAVAssetRequest: AVAssetRequest?
     nonisolated(unsafe) private let playerRef: AVPlayer
     private var hideOverlayTask: Task<Void, Never>?
+    private var navigationMessageTask: Task<Void, Never>?
     private var wasPlayingBeforeTemporaryFastForward: Bool = false
     private var wasPlayingBeforeTemporaryRewind: Bool = false
     private var temporaryRewindTargetTime: TimeInterval = 0
+    private var loadGeneration: Int = 0
 
     private let temporaryRewindInterval: TimeInterval = 0.1
     private let temporaryRewindRate: TimeInterval = 2.0
@@ -47,6 +52,11 @@ final class VideoPlayerViewModel {
         }
         rateObservation?.invalidate()
         temporaryRewindTask?.cancel()
+        activeAVAssetRequest?.cancel()
+    }
+
+    var canNavigateBySwipe: Bool {
+        !isLoadingNextVideo && loadError == nil && player.currentItem != nil
     }
 
     func setUp() async {
@@ -54,28 +64,100 @@ final class VideoPlayerViewModel {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         try? AVAudioSession.sharedInstance().setActive(true)
 
-        let options = PHVideoRequestOptions()
-        options.isNetworkAccessAllowed = true
-        options.deliveryMode = .automatic
+        await load(video: video, autoPlay: true, isInitialLoad: true)
+    }
 
-        let asset: AVAsset? = await withCheckedContinuation { continuation in
-            PHImageManager.default().requestAVAsset(forVideo: video.phAsset, options: options) { asset, _, _ in
-                continuation.resume(returning: asset)
+    func cancelLoading() {
+        loadGeneration += 1
+        activeAVAssetRequest?.cancel()
+        activeAVAssetRequest = nil
+        isLoadingNextVideo = false
+    }
+
+    @discardableResult
+    func load(video newVideo: VideoAsset, autoPlay: Bool? = nil, isInitialLoad: Bool = false) async -> Bool {
+        loadGeneration += 1
+        let generation = loadGeneration
+        let shouldAutoPlay = autoPlay ?? (playerHasPlaybackIntent && !hasReachedEnd)
+        let rateBeforeLoad = playbackRate
+
+        if !isInitialLoad {
+            prepareForVideoSwitch()
+            isLoadingNextVideo = true
+            navigationMessage = nil
+        }
+        defer {
+            if !isInitialLoad, generation == loadGeneration {
+                isLoadingNextVideo = false
             }
         }
-        guard let asset else {
-            loadError = "動画の読み込みに失敗しました"
-            return
+
+        activeAVAssetRequest?.cancel()
+        let request = AVAssetRequest()
+        activeAVAssetRequest = request
+
+        let asset = await requestAVAsset(for: newVideo, request: request)
+        if let activeRequest = activeAVAssetRequest, activeRequest === request {
+            activeAVAssetRequest = nil
         }
+
+        guard !Task.isCancelled, generation == loadGeneration else {
+            return false
+        }
+
+        guard let asset else {
+            if isInitialLoad {
+                loadError = "動画の読み込みに失敗しました"
+            } else {
+                showNavigationMessage("動画の読み込みに失敗しました")
+                if shouldAutoPlay {
+                    player.playImmediately(atRate: rateBeforeLoad)
+                    isPlaying = true
+                }
+            }
+            return false
+        }
+
+        removePlaybackObservers()
 
         let item = AVPlayerItem(asset: asset)
         item.audioTimePitchAlgorithm = .spectral
         player.replaceCurrentItem(with: item)
-        duration = video.duration
+
+        video = newVideo
+        duration = newVideo.duration
+        currentTime = 0
+        loadError = nil
+        seekFeedback = nil
 
         installObservers(for: item)
-        player.play()
-        isPlaying = true
+        if shouldAutoPlay {
+            player.playImmediately(atRate: rateBeforeLoad)
+            isPlaying = true
+        } else {
+            player.pause()
+            isPlaying = false
+        }
+
+        return true
+    }
+
+    private func requestAVAsset(for video: VideoAsset, request: AVAssetRequest) async -> AVAsset? {
+        let options = PHVideoRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.deliveryMode = .automatic
+
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                request.setContinuation(continuation)
+                let requestID = PHImageManager.default().requestAVAsset(forVideo: video.phAsset, options: options) { asset, _, _ in
+                    request.finish(with: asset)
+                }
+                request.setRequestID(requestID)
+            }
+        } onCancel: {
+            request.cancel()
+        }
     }
 
     private func installObservers(for item: AVPlayerItem) {
@@ -102,6 +184,19 @@ final class VideoPlayerViewModel {
                 self?.isPlaying = false
             }
         }
+    }
+
+    private func removePlaybackObservers() {
+        if let observer = timeObserver {
+            player.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
+        rateObservation?.invalidate()
+        rateObservation = nil
     }
 
     func togglePlayPause() {
@@ -249,6 +344,22 @@ final class VideoPlayerViewModel {
         duration > 0 && currentTime >= duration - 0.05
     }
 
+    private func prepareForVideoSwitch() {
+        pause()
+        hideOverlayTask?.cancel()
+        seekFeedback = nil
+    }
+
+    private func showNavigationMessage(_ message: String) {
+        navigationMessageTask?.cancel()
+        navigationMessage = message
+        navigationMessageTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            guard !Task.isCancelled else { return }
+            self?.navigationMessage = nil
+        }
+    }
+
     private func resetTemporaryFastForwardState() {
         isTemporaryFastForwarding = false
         wasPlayingBeforeTemporaryFastForward = false
@@ -293,4 +404,72 @@ final class VideoPlayerViewModel {
 struct SeekFeedback: Equatable {
     let seconds: TimeInterval
     let id: UUID
+}
+
+private final class AVAssetRequest: @unchecked Sendable {
+    private let lock = NSLock()
+    private var requestID: PHImageRequestID = PHInvalidImageRequestID
+    private var continuation: CheckedContinuation<AVAsset?, Never>?
+    private var isFinished: Bool = false
+
+    func setContinuation(_ continuation: CheckedContinuation<AVAsset?, Never>) {
+        var shouldResumeImmediately = false
+
+        lock.lock()
+        if isFinished {
+            shouldResumeImmediately = true
+        } else {
+            self.continuation = continuation
+        }
+        lock.unlock()
+
+        if shouldResumeImmediately {
+            continuation.resume(returning: nil)
+        }
+    }
+
+    func setRequestID(_ requestID: PHImageRequestID) {
+        var shouldCancel = false
+
+        lock.lock()
+        if isFinished {
+            shouldCancel = true
+        } else {
+            self.requestID = requestID
+        }
+        lock.unlock()
+
+        if shouldCancel {
+            PHImageManager.default().cancelImageRequest(requestID)
+        }
+    }
+
+    func finish(with asset: AVAsset?) {
+        complete(returning: asset, shouldCancelRequest: false)
+    }
+
+    func cancel() {
+        complete(returning: nil, shouldCancelRequest: true)
+    }
+
+    private func complete(returning asset: AVAsset?, shouldCancelRequest: Bool) {
+        let continuationToResume: CheckedContinuation<AVAsset?, Never>?
+        let requestIDToCancel: PHImageRequestID
+
+        lock.lock()
+        guard !isFinished else {
+            lock.unlock()
+            return
+        }
+        isFinished = true
+        continuationToResume = continuation
+        continuation = nil
+        requestIDToCancel = requestID
+        lock.unlock()
+
+        if shouldCancelRequest, requestIDToCancel != PHInvalidImageRequestID {
+            PHImageManager.default().cancelImageRequest(requestIDToCancel)
+        }
+        continuationToResume?.resume(returning: asset)
+    }
 }
