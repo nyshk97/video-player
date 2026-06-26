@@ -104,8 +104,12 @@ xcrun simctl addmedia booted /tmp/vp-samples/*.mov
 - 右下の四角い向き切り替えボタンが表示されること
 - iPhone の縦向きロック OFF で、右下ボタン → 横向き固定 → もう一度右下ボタン → 縦向き固定になること
 - iPhone の縦向きロック ON で、右下ボタン → 横向き固定 → もう一度右下ボタン → 縦向き固定になること
+- 動画を閉じてすぐ別の動画を開いても、右下の向き切り替えボタンが反応すること
+- 複数動画を左右スワイプで切り替えた後も、右下の向き切り替えボタンが反応すること
 - 横向き中に上部 × ボタンで閉じると、一覧画面が最初から縦向きで表示されること
 - 横向き中に編集ボタンを押すと、編集画面が最初から縦向きで表示されること
+- 横画面ボタンを押してすぐに上部 × ボタンで閉じても、次回プレイヤー表示時に向き切り替えボタンが反応すること
+- 横画面ボタンを押してすぐに編集画面へ入っても、戻った後に向き切り替えボタンが反応すること
 
 ## スクリーンショット
 
@@ -117,6 +121,34 @@ mise run shot   # /tmp/vid.png に保存
 タップ後の状態確認はユーザー手動 → AI 側でスクショ確認の流れで行う。
 
 ## 実機への転送
+
+CLI で実機へ入れる場合:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun devicectl list devices
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+  -project Vid.xcodeproj \
+  -scheme Vid \
+  -destination 'id=<device-id>' \
+  -configuration Debug \
+  build
+APP_DIR=$(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+  -project Vid.xcodeproj \
+  -scheme Vid \
+  -destination 'id=<device-id>' \
+  -configuration Debug \
+  -showBuildSettings 2>/dev/null |
+  awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2; exit}')
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun devicectl device install app \
+  --device <device-id> \
+  "$APP_DIR/Vid.app"
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun devicectl device process launch \
+  --device <device-id> \
+  --terminate-existing \
+  com.d0ne1s.vid
+```
+
+Xcode で入れる場合:
 
 1. Xcode で `Vid.xcodeproj` を開く
 2. プロジェクト navigator → Vid target → Signing & Capabilities

@@ -26,6 +26,7 @@ final class OrientationManager {
     private(set) var lastRequestError: String?
 
     private var settleTask: Task<Void, Never>?
+    private var requestGeneration: Int = 0
 
     private init() {}
 
@@ -34,40 +35,27 @@ final class OrientationManager {
     }
 
     func enterPlayer() {
-        settleTask?.cancel()
-        lastRequestError = nil
-        requestedLock = .portrait
-        allowedMask = .portrait
-        refreshActualInterfaceOrientation()
-        updateSupportedOrientationControllers()
+        resetPendingRequest(reason: "enterPlayer")
     }
 
     func leavePlayer() {
-        requestPortrait()
+        requestPortraitIfNeeded(reason: "leavePlayer")
     }
 
     func enterEditor() {
-        requestPortrait()
+        requestPortraitIfNeeded(reason: "enterEditor")
     }
 
     func requestPortraitBeforeTransition() async {
-        refreshActualInterfaceOrientation()
-        if !actualInterfaceOrientation.isLandscape && allowedMask == .portrait && !isRequestPending {
+        if !requestPortraitIfNeeded(reason: "beforeTransition") {
             return
         }
-
-        requestPortrait()
         try? await Task.sleep(nanoseconds: 500_000_000)
         refreshActualInterfaceOrientation()
     }
 
     func resumePlayerAfterEditor() {
-        settleTask?.cancel()
-        lastRequestError = nil
-        requestedLock = .portrait
-        allowedMask = .portrait
-        refreshActualInterfaceOrientation()
-        updateSupportedOrientationControllers()
+        resetPendingRequest(reason: "resumePlayerAfterEditor")
     }
 
     func togglePlayerOrientation() {
@@ -75,9 +63,9 @@ final class OrientationManager {
         guard !isRequestPending else { return }
 
         if actualInterfaceOrientation.isLandscape {
-            requestPortrait()
+            requestPortrait(reason: "toggle")
         } else {
-            requestLandscape()
+            requestLandscape(reason: "toggle")
         }
     }
 
@@ -86,8 +74,26 @@ final class OrientationManager {
         actualInterfaceOrientation = scene.interfaceOrientation
     }
 
-    private func requestLandscape() {
+    @discardableResult
+    private func requestPortraitIfNeeded(reason: String) -> Bool {
+        refreshActualInterfaceOrientation()
+        if !actualInterfaceOrientation.isLandscape && allowedMask == .portrait && !isRequestPending {
+            logger.debug("Skipping portrait request. reason=\(reason, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+            return false
+        }
+
+        if isRequestPending && requestedLock == .portrait {
+            logger.debug("Portrait request already pending. reason=\(reason, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+            return true
+        }
+
+        requestPortrait(reason: reason)
+        return true
+    }
+
+    private func requestLandscape(reason: String) {
         requestGeometry(
+            reason: reason,
             lock: .landscape,
             targetMask: .landscapeRight,
             allowedMaskBeforeRequest: transitionAllowedMask,
@@ -95,8 +101,9 @@ final class OrientationManager {
         )
     }
 
-    private func requestPortrait() {
+    private func requestPortrait(reason: String) {
         requestGeometry(
+            reason: reason,
             lock: .portrait,
             targetMask: .portrait,
             allowedMaskBeforeRequest: transitionAllowedMask,
@@ -105,22 +112,27 @@ final class OrientationManager {
     }
 
     private func requestGeometry(
+        reason: String,
         lock: OrientationLock,
         targetMask: UIInterfaceOrientationMask,
         allowedMaskBeforeRequest: UIInterfaceOrientationMask,
         allowedMaskAfterRequest: UIInterfaceOrientationMask
     ) {
         settleTask?.cancel()
+        settleTask = nil
+        requestGeneration += 1
+        let generation = requestGeneration
         lastRequestError = nil
         requestedLock = lock
         isRequestPending = true
         allowedMask = allowedMaskBeforeRequest
         updateSupportedOrientationControllers()
+        logger.debug("Orientation request started. id=\(generation, privacy: .public), reason=\(reason, privacy: .public), target=\(self.maskDescription(targetMask), privacy: .public), state=\(self.stateDescription, privacy: .public)")
 
         guard let scene = activeWindowScene else {
             handleGeometryRequestFailure(
                 message: "No active UIWindowScene",
-                fallbackAllowedMask: allowedMaskAfterRequest
+                generation: generation
             )
             return
         }
@@ -129,7 +141,7 @@ final class OrientationManager {
             Task { @MainActor [weak self] in
                 self?.handleGeometryRequestFailure(
                     message: error.localizedDescription,
-                    fallbackAllowedMask: allowedMaskAfterRequest
+                    generation: generation
                 )
             }
         }
@@ -137,27 +149,92 @@ final class OrientationManager {
         settleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 450_000_000)
             guard !Task.isCancelled, let self else { return }
+            guard generation == self.requestGeneration else {
+                self.logger.debug("Ignoring stale orientation settle. id=\(generation, privacy: .public), current=\(self.requestGeneration, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+                return
+            }
 
-            refreshActualInterfaceOrientation()
-            isRequestPending = false
-            allowedMask = allowedMaskAfterRequest
-            updateSupportedOrientationControllers()
-            logger.debug("Orientation request settled. requested=\(String(describing: requestedLock), privacy: .public), actual=\(actualInterfaceOrientation.rawValue, privacy: .public)")
+            self.refreshActualInterfaceOrientation()
+            self.isRequestPending = false
+            self.lastRequestError = nil
+            self.allowedMask = allowedMaskAfterRequest
+            self.settleTask = nil
+            self.updateSupportedOrientationControllers()
+            self.logger.debug("Orientation request settled. id=\(generation, privacy: .public), state=\(self.stateDescription, privacy: .public)")
         }
     }
 
     private func handleGeometryRequestFailure(
         message: String,
-        fallbackAllowedMask: UIInterfaceOrientationMask
+        generation: Int
     ) {
+        guard generation == self.requestGeneration else {
+            logger.debug("Ignoring stale orientation failure. id=\(generation, privacy: .public), current=\(self.requestGeneration, privacy: .public), message=\(message, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+            return
+        }
+
         settleTask?.cancel()
+        settleTask = nil
         lastRequestError = message
         refreshActualInterfaceOrientation()
-        requestedLock = actualInterfaceOrientation.isLandscape ? .landscape : .portrait
+        syncRequestedStateToActualOrientation()
         isRequestPending = false
-        allowedMask = fallbackAllowedMask
         updateSupportedOrientationControllers()
-        logger.error("Orientation request failed: \(message, privacy: .public)")
+        logger.error("Orientation request failed. id=\(generation, privacy: .public), message=\(message, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+    }
+
+    private func resetPendingRequest(reason: String) {
+        settleTask?.cancel()
+        settleTask = nil
+        requestGeneration += 1
+        lastRequestError = nil
+        refreshActualInterfaceOrientation()
+        syncRequestedStateToActualOrientation()
+        isRequestPending = false
+        updateSupportedOrientationControllers()
+        logger.debug("Orientation request reset. reason=\(reason, privacy: .public), generation=\(self.requestGeneration, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+    }
+
+    private func syncRequestedStateToActualOrientation() {
+        requestedLock = actualInterfaceOrientation.isLandscape ? .landscape : .portrait
+        allowedMask = mask(for: requestedLock)
+    }
+
+    private func mask(for lock: OrientationLock) -> UIInterfaceOrientationMask {
+        switch lock {
+        case .portrait:
+            return .portrait
+        case .landscape:
+            return .landscape
+        }
+    }
+
+    private var stateDescription: String {
+        "requested=\(requestedLock), actual=\(actualInterfaceOrientation.rawValue), allowed=\(maskDescription(allowedMask)), pending=\(isRequestPending)"
+    }
+
+    private func maskDescription(_ mask: UIInterfaceOrientationMask) -> String {
+        if mask == .all {
+            return "all"
+        }
+        if mask == .allButUpsideDown {
+            return "allButUpsideDown"
+        }
+
+        var values: [String] = []
+        if mask.contains(.portrait) {
+            values.append("portrait")
+        }
+        if mask.contains(.portraitUpsideDown) {
+            values.append("portraitUpsideDown")
+        }
+        if mask.contains(.landscapeLeft) {
+            values.append("landscapeLeft")
+        }
+        if mask.contains(.landscapeRight) {
+            values.append("landscapeRight")
+        }
+        return values.isEmpty ? "[]" : values.joined(separator: "|")
     }
 
     private func updateSupportedOrientationControllers() {
