@@ -183,13 +183,24 @@ App Store Connect の `My Apps` で新規アプリを作成する。
 
 iPhone only なので、iPhone 用スクリーンショットを用意する。App Store Connect には各ローカライズごとに最大 10 枚まで載せられる。
 
+出力先:
+
+- `build/app-store-screenshots/ja-JP/iphone-6.9/`
+- 生成済み画像は 1320x2868 PNG
+- `build/` 配下のため git 追跡対象外
+
 最低限の構成:
 
-- [ ] 😀 ライブラリ一覧
-- [ ] 😀 再生画面
-- [ ] 😀 コントロール表示中の再生画面
+- [x] 😀 ライブラリ一覧
+  - `01-library.png`
+- [x] 😀 再生画面
+  - `02-player.png`
+- [x] 😀 コントロール表示中の再生画面
+  - `03-player-controls.png`
 - [ ] 😀 倍速メニュー
+  - Simulator 上部ボタン操作の自動化が不安定だったため、手動撮影で継続する
 - [ ] 😀 トリミング画面
+  - Simulator 上部ボタン操作の自動化が不安定だったため、手動撮影で継続する
 
 推奨:
 
