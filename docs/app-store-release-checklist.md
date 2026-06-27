@@ -132,11 +132,13 @@ App Store Connect の `My Apps` で新規アプリを作成する。
 
 - [ ] 😀 Platform: iOS
 - [ ] 😀 Name: 決定したアプリ名
+  - `Vid - 動画プレイヤー`
 - [ ] 😀 Primary Language: Japanese
 - [ ] 😀 Bundle ID: `com.d0ne1s.vid`
 - [ ] 😀 SKU: 任意の内部管理ID
-  - 例: `vid-ios`
+  - `vid-ios`
 - [ ] 😀 User Access: 必要なら Full Access
+  - 基本は Full Access で作成する
 
 ## 5. App Store メタデータを用意する
 
