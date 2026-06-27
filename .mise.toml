@@ -7,11 +7,19 @@ run = "xcodegen generate"
 
 [tasks.build]
 description = "iOS Simulator 向けにビルド (iOS 26.5 simulator runtime 未インストールのため -sdk iphonesimulator で destination を回避)"
-run = "xcodebuild -project Vid.xcodeproj -scheme Vid -sdk iphonesimulator -configuration Debug build"
+run = """
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+xcodebuild -project Vid.xcodeproj -scheme Vid -sdk iphonesimulator -configuration Debug build
+"""
 
 [tasks.install]
 description = "起動中のシミュレータにアプリをインストール"
 run = """
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
 APP_PATH=$(xcodebuild -project Vid.xcodeproj -scheme Vid -destination 'generic/platform=iOS Simulator' -configuration Debug -showBuildSettings 2>/dev/null | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2}')
 xcrun simctl install booted "$APP_PATH/Vid.app"
 """
@@ -19,15 +27,28 @@ xcrun simctl install booted "$APP_PATH/Vid.app"
 [tasks.run]
 description = "ビルド → インストール → 起動 (シミュレータが起動済み前提)"
 depends = ["build", "install"]
-run = "xcrun simctl launch booted com.d0ne1s.vid"
+run = """
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+xcrun simctl launch booted com.d0ne1s.vid
+"""
 
 [tasks.boot]
 description = "iPhone 17 シミュレータを起動"
 run = """
-xcrun simctl boot 9B64B4CF-862F-400A-8849-D14812383729 2>/dev/null || true
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+xcrun simctl boot "${VID_SIMULATOR_DEVICE:-iPhone 17}" 2>/dev/null || true
 open -a Simulator
 """
 
 [tasks.shot]
 description = "起動中シミュレータのスクリーンショットを /tmp/vid.png に保存"
-run = "xcrun simctl io booted screenshot /tmp/vid.png"
+run = """
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+xcrun simctl io booted screenshot /tmp/vid.png
+"""

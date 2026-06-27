@@ -15,7 +15,7 @@
 - 対象アプリ: `Vid`
 - Bundle ID: `com.d0ne1s.vid`
 - Target: iPhone only / iOS 17.0+
-- 現在のアプリバージョン: `0.1.0` / build `1`
+- 現在のアプリバージョン: `1.0.0` / build `1`
 
 ## 全体見積もり
 
@@ -52,12 +52,14 @@
 
 ## 2. コード・プロジェクト設定をリリース向けに整える
 
-- [ ] 😀 `project.yml` のバージョンを公開版にする
+- [x] 😀 `project.yml` のバージョンを公開版にする
   - `MARKETING_VERSION`: 初回公開なら `1.0.0` にするか、ベータ感を残して `0.1.0` のまま出すか決める
   - `CURRENT_PROJECT_VERSION`: App Store Connect に上げるたびに増やす
+  - 初回公開版として `MARKETING_VERSION: "1.0.0"` / `CURRENT_PROJECT_VERSION: "1"` に設定
 - [ ] 😀 `PRODUCT_BUNDLE_IDENTIFIER` が Apple Developer の App ID と一致していることを確認する
   - 現在: `com.d0ne1s.vid`
-- [ ] `INFOPLIST_KEY_NSPhotoLibraryUsageDescription` を実態に合わせる
+  - ローカル `project.yml` の値は確認済み。Apple Developer / App Store Connect 側の App ID 作成時に一致確認する
+- [x] `INFOPLIST_KEY_NSPhotoLibraryUsageDescription` を実態に合わせる
   - 現在は「保存されている動画を一覧・再生するため」
   - このアプリは削除・トリミング保存も行うため、審査向けには例のように広げる
 
@@ -65,11 +67,15 @@
 INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "保存されている動画の一覧表示、再生、削除、トリミング保存のために写真ライブラリへのアクセス許可が必要です。"
 ```
 
-- [ ] 😀 アプリアイコンを最終確認する
+- [x] 😀 アプリアイコンを最終確認する
   - `Vid/Resources/Assets.xcassets/AppIcon.appiconset/`
   - iOS のホーム画面で小サイズでも識別できるか確認する
-- [ ] 起動画面が自動生成で問題ないか確認する
+  - 配色は緑背景 + 黄色の再生マーク
+  - 1024x1024 / RGB / alpha なしを確認済み
+  - App Store validation の透明アイコン回避のため、透明ピクセルを含む tinted 変種は外した
+- [x] 起動画面が自動生成で問題ないか確認する
   - 現在: `INFOPLIST_KEY_UILaunchScreen_Generation: YES`
+  - `xcodebuild -showBuildSettings` で `INFOPLIST_KEY_UILaunchScreen_Generation = YES` を確認済み
 - [x] 😀 iPad 非対応でよいか最終確認する
   - 現在: `TARGETED_DEVICE_FAMILY: "1"`
   - 方針: iPad は非対応のまま
@@ -78,19 +84,19 @@ INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "保存されている動画の一
 
 `VERIFY.md` のうち、公開前に最低限必要な範囲だけ確認する。
 
-- [ ] XcodeGen 再生成
+- [x] XcodeGen 再生成
 
 ```sh
 mise run gen
 ```
 
-- [ ] Simulator ビルド
+- [x] Simulator ビルド
 
 ```sh
 mise run build
 ```
 
-- [ ] Simulator 起動確認
+- [x] Simulator 起動確認
 
 ```sh
 mise run boot
