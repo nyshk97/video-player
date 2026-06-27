@@ -144,20 +144,28 @@ App Store Connect の `My Apps` で新規アプリを作成する。
 
 初回提出に必要な日本語テキストを用意する。
 
-- [ ] Subtitle
-- [ ] Description
-- [ ] Keywords
-- [ ] Promotional Text
+- 入力案: [`docs/app-store-metadata.md`](app-store-metadata.md)
+
+- [x] Subtitle
+  - `写真ライブラリ動画をすばやく再生`
+- [x] Description
+  - [`docs/app-store-metadata.md`](app-store-metadata.md) に記載
+- [x] Keywords
+  - `動画,再生,プレイヤー,写真,ライブラリ,シーク,倍速,トリミング,削除`
+- [x] Promotional Text
+  - [`docs/app-store-metadata.md`](app-store-metadata.md) に記載
 - [x] Support URL
   - https://github.com/nyshk97/video-player/blob/main/SUPPORT.md
-- [ ] Marketing URL
+- [x] Marketing URL
   - 任意。なければ空でよい
 - [ ] 😀 Copyright
-- [ ] 😀 Category
-  - 候補: `Photo & Video`
+  - 候補: `2026 tsubasa namatame`
+  - App Store Connect の開発者アカウント表記に合わせて最終決定する
+- [x] 😀 Category
+  - `Photo & Video`
 - [ ] 😀 Age Rating
-  - ユーザー生成動画を扱うが、アプリ自体は成人向けコンテンツを提供しない想定で回答する
-- [ ] 😀 Review Notes
+  - ユーザー自身の写真ライブラリ内の動画を扱うが、アプリ自体は成人向けコンテンツを提供しない想定で回答する
+- [x] 😀 Review Notes
   - ログイン不要
   - 写真ライブラリ権限が必要
   - 審査用に、端末またはシミュレータの写真ライブラリへ動画を追加して確認してほしい旨を書く
