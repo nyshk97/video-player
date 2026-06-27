@@ -41,7 +41,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.d0ne1s.vid
         PRODUCT_NAME: Vid
-        MARKETING_VERSION: "1.0.0"
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"  # iPhone のみ
         # 実機ビルド時は Xcode の Signing & Capabilities で Personal Team を選択する

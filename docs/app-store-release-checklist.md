@@ -10,12 +10,12 @@
 - iOS のみ公開
 - 外部 TestFlight ベータは挟まない
 - 価格は無料
-- 公開地域は日本のみ
+- 公開地域は全世界
 - 対応言語は日本語のみ
 - 対象アプリ: `Vid`
 - Bundle ID: `com.d0ne1s.vid`
 - Target: iPhone only / iOS 17.0+
-- 現在のアプリバージョン: `1.0.0` / build `1`
+- 現在のアプリバージョン: `1.0` / build `1`
 
 ## 全体見積もり
 
@@ -39,7 +39,8 @@
   - 無料
   - 税務/銀行情報は基本不要
 - [x] 😀 公開地域を決める
-  - 日本のみ
+  - 全世界
+  - 日本語のみ対応だが、海外在住の日本語ユーザーや国外 Apple Account 利用時も更新できるようにする
 - [x] 😀 対応言語を決める
   - 日本語のみ
   - App Store メタデータ、スクリーンショット、サポートページ、Privacy Policy も日本語で揃える
@@ -53,9 +54,9 @@
 ## 2. コード・プロジェクト設定をリリース向けに整える
 
 - [x] 😀 `project.yml` のバージョンを公開版にする
-  - `MARKETING_VERSION`: 初回公開なら `1.0.0` にするか、ベータ感を残して `0.1.0` のまま出すか決める
+  - `MARKETING_VERSION`: 初回公開なら `1.0` にするか、ベータ感を残して `0.1.0` のまま出すか決める
   - `CURRENT_PROJECT_VERSION`: App Store Connect に上げるたびに増やす
-  - 初回公開版として `MARKETING_VERSION: "1.0.0"` / `CURRENT_PROJECT_VERSION: "1"` に設定
+  - 初回公開版として `MARKETING_VERSION: "1.0"` / `CURRENT_PROJECT_VERSION: "1"` に設定
 - [ ] 😀 `PRODUCT_BUNDLE_IDENTIFIER` が Apple Developer の App ID と一致していることを確認する
   - 現在: `com.d0ne1s.vid`
   - ローカル `project.yml` の値は確認済み。Apple Developer / App Store Connect 側の App ID 作成時に一致確認する
@@ -147,7 +148,7 @@ App Store Connect の `My Apps` で新規アプリを作成する。
 - 入力案: [`docs/app-store-metadata.md`](app-store-metadata.md)
 
 - [x] Subtitle
-  - `写真ライブラリ動画をすばやく再生`
+  - `スムーズな動画再生`
 - [x] Description
   - [`docs/app-store-metadata.md`](app-store-metadata.md) に記載
 - [x] Keywords
@@ -163,8 +164,9 @@ App Store Connect の `My Apps` で新規アプリを作成する。
   - App Store Connect の開発者アカウント表記に合わせて最終決定する
 - [x] 😀 Category
   - `Photo & Video`
-- [ ] 😀 Age Rating
+- [x] 😀 Age Rating
   - ユーザー自身の写真ライブラリ内の動画を扱うが、アプリ自体は成人向けコンテンツを提供しない想定で回答する
+  - App Store Connect で `4+` と算出された
 - [x] 😀 Review Notes
   - ログイン不要
   - 写真ライブラリ権限が必要
@@ -218,9 +220,9 @@ mise run shot
 
 このアプリは現状、外部通信やサードパーティ SDK が見当たらない。実装がこのままなら App Store Connect の App Privacy は次の方針で入力する。
 
-- [ ] 😀 Privacy Policy URL を入力する
-- [ ] 😀 Data Collection は「データを収集しない」を選ぶ
-- [ ] 😀 Tracking は行わない
+- [x] 😀 Privacy Policy URL を入力する
+- [x] 😀 Data Collection は「データを収集しない」を選ぶ
+- [x] 😀 Tracking は行わない
 - [ ] 😀 サードパーティ SDK を追加した場合は、SDK の収集データも含めて回答を見直す
 
 注意:
@@ -231,18 +233,21 @@ mise run shot
 
 ## 8. Pricing and Availability を設定する
 
-- [ ] 😀 価格を Free に設定する
-- [ ] 😀 Availability を日本のみに設定する
-- [ ] 😀 iPhone apps on Mac / Apple Vision Pro での利用可否を確認する
+- [x] 😀 価格を Free に設定する
+- [x] 😀 Availability を全世界に設定する
+- [x] 😀 iPhone apps on Mac / Apple Vision Pro での利用可否を確認する
   - iOS only のつもりでも、Apple Silicon Mac 等への配布設定が表示される場合がある
   - 操作性を確認していないなら、最初は iPhone/iOS に絞る
+  - 初回提出では Mac / Vision Pro 配信はオフ
+- [x] 😀 EU Digital Services Act は「トレーダーではない」でコンプライアンス有効化済み
 
 ## 9. 輸出コンプライアンスを確認する
 
 - [ ] 暗号化の利用有無を確認する
   - このアプリの現状では独自暗号化・ネットワーク暗号化の実装は見当たらない
   - OS 標準機能以外で暗号化を使っていない前提なら、その旨で回答する
-- [ ] 😀 App Store Connect の Export Compliance 質問に回答する
+- [x] 😀 App Store Connect の Export Compliance 質問に回答する
+  - 暗号化アルゴリズムは「上記のアルゴリズムのどれでもない」を選択
 
 ## 10. Release Archive を作成・アップロードする
 
@@ -276,22 +281,34 @@ xcodebuild \
 
 アップロード後:
 
-- [ ] 😀 App Store Connect の Build に反映されるまで待つ
-- [ ] 😀 Processing が完了したら、対象バージョンに build を紐付ける
-- [ ] 😀 `CURRENT_PROJECT_VERSION` が過去 build より大きいことを確認する
+- [x] 😀 App Store Connect の Build に反映されるまで待つ
+- [x] 😀 Processing が完了したら、対象バージョンに build を紐付ける
+- [x] 😀 `CURRENT_PROJECT_VERSION` が過去 build より大きいことを確認する
+  - 初回 build: `1`
+
+現在の出力:
+
+- [x] Release archive 作成済み: `build/Vid.xcarchive`
+- [x] App Store Connect 用 IPA export 済み: `build/app-store-export/Vid.ipa`
+- [x] IPA 検証: Bundle ID `com.d0ne1s.vid` / version `1.0` / build `1` / Apple Distribution 署名
+- [x] Xcode Organizer から App Store Connect へアップロード済み
+- [x] CLI 直接アップロードは `App Store Connect Credentials Error` のため未完了
+  - `Actor/relationships/providerId` が nil になる Xcode アカウント解決エラー
+  - 配布用 IPA は作成済みで、Xcode Organizer からのアップロードは成功
 
 ## 11. App Review に提出する
 
-- [ ] 😀 App Information がすべて埋まっている
-- [ ] 😀 Pricing and Availability が設定済み
-- [ ] 😀 App Privacy が公開済み
-- [ ] 😀 Age Rating が設定済み
-- [ ] 😀 Screenshot が登録済み
-- [ ] 😀 Build が選択済み
-- [ ] 😀 Export Compliance に回答済み
-- [ ] 😀 Review Contact Information が最新
-- [ ] 😀 Review Notes に写真ライブラリ権限と確認手順を書いた
-- [ ] 😀 Submit for Review を実行する
+- [x] 😀 App Information がすべて埋まっている
+- [x] 😀 Pricing and Availability が設定済み
+- [x] 😀 App Privacy が公開済み
+- [x] 😀 Age Rating が設定済み
+- [x] 😀 Screenshot が登録済み
+- [x] 😀 Build が選択済み
+- [x] 😀 Export Compliance に回答済み
+- [x] 😀 Review Contact Information が最新
+- [x] 😀 Review Notes に写真ライブラリ権限と確認手順を書いた
+- [x] 😀 Submit for Review を実行する
+  - 2026-06-27 に `1.0` を審査へ提出
 
 ## 12. リジェクト時の対応
 
