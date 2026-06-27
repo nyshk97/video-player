@@ -2,6 +2,8 @@
 
 作成日: 2026-06-26
 
+凡例: 😀 は AI だけでは自動化しにくく、人の判断、実機・目視確認、アカウント操作、法務/審査回答が必要になりやすいタスク。
+
 ## 前提
 
 - Apple Developer Program 登録済み
@@ -29,28 +31,30 @@
 
 ## 1. 公開方針を決める
 
-- [ ] App Store 上の正式アプリ名を決める
-  - 候補: `Vid`
-  - 短い一般名なので、App Store 上の重複、検索性、商標リスクを確認する
-- [x] 価格を決める
+- [x] 😀 App Store 上の正式アプリ名を決める
+  - App Store 正式名: `Vid - 動画プレイヤー`
+  - ホーム画面の表示名は `Vid` のままにする
+  - `Vid` 単体は日本 App Store に `vID` が存在するため、名前予約で弾かれる可能性がある: https://apps.apple.com/jp/app/vid/id1537652843
+- [x] 😀 価格を決める
   - 無料
   - 税務/銀行情報は基本不要
-- [x] 公開地域を決める
+- [x] 😀 公開地域を決める
   - 日本のみ
-- [x] 対応言語を決める
+- [x] 😀 対応言語を決める
   - 日本語のみ
   - App Store メタデータ、スクリーンショット、サポートページ、Privacy Policy も日本語で揃える
-- [ ] サポート窓口を決める
-  - メールアドレス、フォーム、GitHub Issues など
-- [ ] Privacy Policy を置く URL を決める
+- [x] 😀 サポート窓口を決める
+  - サポートメール: `nyshk97+vid@gmail.com`
+- [ ] 😀 Privacy Policy を置く URL を決める
   - iOS アプリは App Store Connect で Privacy Policy URL が必須
+  - GitHub リポジトリまたは GitHub Pages の公開方針とあわせて決める
 
 ## 2. コード・プロジェクト設定をリリース向けに整える
 
-- [ ] `project.yml` のバージョンを公開版にする
+- [ ] 😀 `project.yml` のバージョンを公開版にする
   - `MARKETING_VERSION`: 初回公開なら `1.0.0` にするか、ベータ感を残して `0.1.0` のまま出すか決める
   - `CURRENT_PROJECT_VERSION`: App Store Connect に上げるたびに増やす
-- [ ] `PRODUCT_BUNDLE_IDENTIFIER` が Apple Developer の App ID と一致していることを確認する
+- [ ] 😀 `PRODUCT_BUNDLE_IDENTIFIER` が Apple Developer の App ID と一致していることを確認する
   - 現在: `com.d0ne1s.vid`
 - [ ] `INFOPLIST_KEY_NSPhotoLibraryUsageDescription` を実態に合わせる
   - 現在は「保存されている動画を一覧・再生するため」
@@ -60,13 +64,14 @@
 INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "保存されている動画の一覧表示、再生、削除、トリミング保存のために写真ライブラリへのアクセス許可が必要です。"
 ```
 
-- [ ] アプリアイコンを最終確認する
+- [ ] 😀 アプリアイコンを最終確認する
   - `Vid/Resources/Assets.xcassets/AppIcon.appiconset/`
   - iOS のホーム画面で小サイズでも識別できるか確認する
 - [ ] 起動画面が自動生成で問題ないか確認する
   - 現在: `INFOPLIST_KEY_UILaunchScreen_Generation: YES`
-- [ ] iPad 非対応でよいか最終確認する
+- [x] 😀 iPad 非対応でよいか最終確認する
   - 現在: `TARGETED_DEVICE_FAMILY: "1"`
+  - 方針: iPad は非対応のまま
 
 ## 3. Release ビルドを作る前のローカル確認
 
@@ -91,28 +96,28 @@ mise run boot
 mise run run
 ```
 
-- [ ] サンプル動画を入れて一覧・再生を確認する
-- [ ] 写真権限の初回許可、拒否時の表示、設定遷移を確認する
-- [ ] 動画が 0 件の状態を確認する
-- [ ] 複数動画で左右スワイプ移動を確認する
-- [ ] 再生、一時停止、シーク、倍速、長押し 2x、巻き戻しを確認する
-- [ ] 削除操作を確認する
-- [ ] トリミング保存を確認する
-- [ ] 実機で縦向きロック ON/OFF の向き切り替えを確認する
-- [ ] 実機で大量動画ライブラリの初期表示速度を確認する
-- [ ] 実機でメモリ落ちや極端な発熱がないか確認する
+- [ ] 😀 サンプル動画を入れて一覧・再生を確認する
+- [ ] 😀 写真権限の初回許可、拒否時の表示、設定遷移を確認する
+- [ ] 😀 動画が 0 件の状態を確認する
+- [ ] 😀 複数動画で左右スワイプ移動を確認する
+- [ ] 😀 再生、一時停止、シーク、倍速、長押し 2x、巻き戻しを確認する
+- [ ] 😀 削除操作を確認する
+- [ ] 😀 トリミング保存を確認する
+- [ ] 😀 実機で縦向きロック ON/OFF の向き切り替えを確認する
+- [ ] 😀 実機で大量動画ライブラリの初期表示速度を確認する
+- [ ] 😀 実機でメモリ落ちや極端な発熱がないか確認する
 
 ## 4. App Store Connect にアプリを作成する
 
 App Store Connect の `My Apps` で新規アプリを作成する。
 
-- [ ] Platform: iOS
-- [ ] Name: 決定したアプリ名
-- [ ] Primary Language: Japanese
-- [ ] Bundle ID: `com.d0ne1s.vid`
-- [ ] SKU: 任意の内部管理ID
+- [ ] 😀 Platform: iOS
+- [ ] 😀 Name: 決定したアプリ名
+- [ ] 😀 Primary Language: Japanese
+- [ ] 😀 Bundle ID: `com.d0ne1s.vid`
+- [ ] 😀 SKU: 任意の内部管理ID
   - 例: `vid-ios`
-- [ ] User Access: 必要なら Full Access
+- [ ] 😀 User Access: 必要なら Full Access
 
 ## 5. App Store メタデータを用意する
 
@@ -125,12 +130,12 @@ App Store Connect の `My Apps` で新規アプリを作成する。
 - [ ] Support URL
 - [ ] Marketing URL
   - 任意。なければ空でよい
-- [ ] Copyright
-- [ ] Category
+- [ ] 😀 Copyright
+- [ ] 😀 Category
   - 候補: `Photo & Video`
-- [ ] Age Rating
+- [ ] 😀 Age Rating
   - ユーザー生成動画を扱うが、アプリ自体は成人向けコンテンツを提供しない想定で回答する
-- [ ] Review Notes
+- [ ] 😀 Review Notes
   - ログイン不要
   - 写真ライブラリ権限が必要
   - 審査用に、端末またはシミュレータの写真ライブラリへ動画を追加して確認してほしい旨を書く
@@ -150,11 +155,11 @@ iPhone only なので、iPhone 用スクリーンショットを用意する。A
 
 最低限の構成:
 
-- [ ] ライブラリ一覧
-- [ ] 再生画面
-- [ ] コントロール表示中の再生画面
-- [ ] 倍速メニュー
-- [ ] トリミング画面
+- [ ] 😀 ライブラリ一覧
+- [ ] 😀 再生画面
+- [ ] 😀 コントロール表示中の再生画面
+- [ ] 😀 倍速メニュー
+- [ ] 😀 トリミング画面
 
 推奨:
 
@@ -172,10 +177,10 @@ mise run shot
 
 このアプリは現状、外部通信やサードパーティ SDK が見当たらない。実装がこのままなら App Store Connect の App Privacy は次の方針で入力する。
 
-- [ ] Privacy Policy URL を入力する
-- [ ] Data Collection は「データを収集しない」を選ぶ
-- [ ] Tracking は行わない
-- [ ] サードパーティ SDK を追加した場合は、SDK の収集データも含めて回答を見直す
+- [ ] 😀 Privacy Policy URL を入力する
+- [ ] 😀 Data Collection は「データを収集しない」を選ぶ
+- [ ] 😀 Tracking は行わない
+- [ ] 😀 サードパーティ SDK を追加した場合は、SDK の収集データも含めて回答を見直す
 
 注意:
 
@@ -185,9 +190,9 @@ mise run shot
 
 ## 8. Pricing and Availability を設定する
 
-- [ ] 価格を Free に設定する
-- [ ] Availability を日本のみに設定する
-- [ ] iPhone apps on Mac / Apple Vision Pro での利用可否を確認する
+- [ ] 😀 価格を Free に設定する
+- [ ] 😀 Availability を日本のみに設定する
+- [ ] 😀 iPhone apps on Mac / Apple Vision Pro での利用可否を確認する
   - iOS only のつもりでも、Apple Silicon Mac 等への配布設定が表示される場合がある
   - 操作性を確認していないなら、最初は iPhone/iOS に絞る
 
@@ -196,7 +201,7 @@ mise run shot
 - [ ] 暗号化の利用有無を確認する
   - このアプリの現状では独自暗号化・ネットワーク暗号化の実装は見当たらない
   - OS 標準機能以外で暗号化を使っていない前提なら、その旨で回答する
-- [ ] App Store Connect の Export Compliance 質問に回答する
+- [ ] 😀 App Store Connect の Export Compliance 質問に回答する
 
 ## 10. Release Archive を作成・アップロードする
 
@@ -230,22 +235,22 @@ xcodebuild \
 
 アップロード後:
 
-- [ ] App Store Connect の Build に反映されるまで待つ
-- [ ] Processing が完了したら、対象バージョンに build を紐付ける
-- [ ] `CURRENT_PROJECT_VERSION` が過去 build より大きいことを確認する
+- [ ] 😀 App Store Connect の Build に反映されるまで待つ
+- [ ] 😀 Processing が完了したら、対象バージョンに build を紐付ける
+- [ ] 😀 `CURRENT_PROJECT_VERSION` が過去 build より大きいことを確認する
 
 ## 11. App Review に提出する
 
-- [ ] App Information がすべて埋まっている
-- [ ] Pricing and Availability が設定済み
-- [ ] App Privacy が公開済み
-- [ ] Age Rating が設定済み
-- [ ] Screenshot が登録済み
-- [ ] Build が選択済み
-- [ ] Export Compliance に回答済み
-- [ ] Review Contact Information が最新
-- [ ] Review Notes に写真ライブラリ権限と確認手順を書いた
-- [ ] Submit for Review を実行する
+- [ ] 😀 App Information がすべて埋まっている
+- [ ] 😀 Pricing and Availability が設定済み
+- [ ] 😀 App Privacy が公開済み
+- [ ] 😀 Age Rating が設定済み
+- [ ] 😀 Screenshot が登録済み
+- [ ] 😀 Build が選択済み
+- [ ] 😀 Export Compliance に回答済み
+- [ ] 😀 Review Contact Information が最新
+- [ ] 😀 Review Notes に写真ライブラリ権限と確認手順を書いた
+- [ ] 😀 Submit for Review を実行する
 
 ## 12. リジェクト時の対応
 
@@ -261,25 +266,25 @@ xcodebuild \
 
 対応方針:
 
-- [ ] 指摘をそのまま docs に転記する
+- [ ] 😀 指摘をそのまま docs に転記する
 - [ ] コード修正が必要なら修正する
-- [ ] メタデータ修正で済むなら App Store Connect だけ直す
+- [ ] 😀 メタデータ修正で済むなら App Store Connect だけ直す
 - [ ] Build を再提出する場合は `CURRENT_PROJECT_VERSION` を増やす
-- [ ] Resolution Center 返信には、修正点と確認手順を短く書く
+- [ ] 😀 Resolution Center 返信には、修正点と確認手順を短く書く
 
 ## 13. 公開後に確認する
 
 - [ ] App Store ページが表示される
-- [ ] 自分の端末で App Store からインストールできる
-- [ ] 初回起動、写真権限、一覧表示、再生、削除、トリミング保存が動く
-- [ ] App Store Connect の Crashes / Feedback / Ratings and Reviews を確認する
-- [ ] 問い合わせ導線が機能している
+- [ ] 😀 自分の端末で App Store からインストールできる
+- [ ] 😀 初回起動、写真権限、一覧表示、再生、削除、トリミング保存が動く
+- [ ] 😀 App Store Connect の Crashes / Feedback / Ratings and Reviews を確認する
+- [ ] 😀 問い合わせ導線が機能している
 
 公開直後の初回アップデート候補:
 
-- [ ] App Store レビューやクラッシュを見て優先度を決める
-- [ ] 日本語レビューや問い合わせを見て説明文・スクリーンショットを改善する
-- [ ] サポートページと Privacy Policy を必要に応じて更新する
+- [ ] 😀 App Store レビューやクラッシュを見て優先度を決める
+- [ ] 😀 日本語レビューや問い合わせを見て説明文・スクリーンショットを改善する
+- [ ] 😀 サポートページと Privacy Policy を必要に応じて更新する
 
 ## 参考リンク
 
