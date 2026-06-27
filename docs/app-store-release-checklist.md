@@ -45,9 +45,10 @@
   - App Store メタデータ、スクリーンショット、サポートページ、Privacy Policy も日本語で揃える
 - [x] 😀 サポート窓口を決める
   - サポートメール: `nyshk97+vid@gmail.com`
-- [ ] 😀 Privacy Policy を置く URL を決める
+- [x] 😀 Privacy Policy を置く URL を決める
   - iOS アプリは App Store Connect で Privacy Policy URL が必須
-  - GitHub リポジトリまたは GitHub Pages の公開方針とあわせて決める
+  - Privacy Policy URL: https://github.com/nyshk97/video-player/blob/main/PRIVACY_POLICY.md
+  - Support URL: https://github.com/nyshk97/video-player/blob/main/SUPPORT.md
 
 ## 2. コード・プロジェクト設定をリリース向けに整える
 
@@ -127,7 +128,8 @@ App Store Connect の `My Apps` で新規アプリを作成する。
 - [ ] Description
 - [ ] Keywords
 - [ ] Promotional Text
-- [ ] Support URL
+- [x] Support URL
+  - https://github.com/nyshk97/video-player/blob/main/SUPPORT.md
 - [ ] Marketing URL
   - 任意。なければ空でよい
 - [ ] 😀 Copyright
