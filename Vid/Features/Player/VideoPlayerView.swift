@@ -45,6 +45,8 @@ struct VideoPlayerView: View {
         .background(viewportSizeReader)
         .statusBarHidden(true)
         .persistentSystemOverlays(.hidden)
+        .verticalBarDisabled()
+        .reportsDeviceHinge()
         .animation(.easeInOut(duration: 0.18), value: viewModel.isOverlayVisible)
         .simultaneousGesture(dismissDragGesture)
         .task {
@@ -83,6 +85,7 @@ struct VideoPlayerView: View {
                         requestedOrientationLock: orientationManager.requestedLock,
                         actualInterfaceOrientation: orientationManager.actualInterfaceOrientation,
                         isOrientationRequestPending: orientationManager.isRequestPending,
+                        canToggleOrientation: orientationManager.canControlOrientation,
                         onClose: {
                             startCloseAfterPortrait()
                         },

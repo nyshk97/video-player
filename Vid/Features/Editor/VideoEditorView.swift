@@ -28,6 +28,8 @@ struct VideoEditorView: View {
             }
         }
         .statusBarHidden(true)
+        .verticalBarDisabled()
+        .reportsDeviceHinge()
         .task { await viewModel.setUp() }
         .onDisappear { viewModel.player.pause() }
         .onChange(of: viewModel.exportCompleted) { _, completed in

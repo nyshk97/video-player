@@ -4,8 +4,8 @@ iOS シミュレータ上で動作確認する手順。
 
 ## 環境
 
-- Xcode 26.5 (iOS 26.5 SDK)
-- iOS Simulator 26.4 (Xcode 26.5 が想定する 26.5 simulator runtime は未インストール → `-sdk iphonesimulator` 指定で回避)
+- Xcode 27.2 (iOS 27.2 SDK)。シミュレータの既定はiPhone Duo (iOS 27.2) (2026-11-21)
+- buildタスクは`-sdk iphonesimulator`指定でdestinationを指定しない(Xcode 26.5でruntimeが揃っていなかった名残。今も通る)
 - bundle id: `com.d0ne1s.vid`
 - ターゲット: iPhone (iOS 17.0+)
 - 写真ライブラリへの readWrite アクセス必須
@@ -116,14 +116,44 @@ xcrun simctl addmedia booted /tmp/vp-samples/*.mov
 - 横画面ボタンを押してすぐに上部 × ボタンで閉じても、次回プレイヤー表示時に向き切り替えボタンが反応すること
 - 横画面ボタンを押してすぐに編集画面へ入っても、戻った後に向き切り替えボタンが反応すること
 
+### iPhone Duo (折りたたみ)
+
+開閉はDevice Hubの画面下のボタン「Closed」「Partially Open」「Open」で切り替える。miniの会話ではStationの`desktop_ax`で押せる(`desc:Closed`で押せる。`desc:Open`は先に「Partially Open」に当たるので、`tree`の`find: "Open"`で出たパスで押す)。端末の向きはDeviceメニューのOrientation。
+
+- 閉じた画面(`--display=primary`, 466×678pt)は右端に縦の帯(時刻・ツールバー)が出る。開いた画面(`--display=primary-1`)は横持ちで951×669pt、中央に折り目
+- 閉じた画面の一覧は5列、右の縦の帯に時刻と並び順ボタンが出ること
+- 閉じた画面のプレイヤーと編集画面は縦の帯が出ず、再生ボタンが左右の中央に、右上・右下のボタンが右端に来ること(帯が出ると右に約80ptの空きが残り、全体が左に寄る)
+- 閉じた画面では向き切り替えボタンで横・縦が切り替わること
+- 開いた画面の一覧は幅に合わせて列が増えること(横持ち10列、縦持ち8列)
+- 開いた画面のプレイヤーには右下の向き切り替えボタンが出ないこと(開いた画面ではアプリから向きを変えられない)
+- 開いた画面で端末を縦持ち・横持ちに回すと、一覧もプレイヤーも端末に合わせて回ること
+- 閉じた画面で横向き → 縦向きに切り替えてから開いても、開いた画面が端末の向きに合うこと(90°寝たまま固まらない)
+- 閉じた画面で横向きにしたまま開き、閉じ直すと、外の画面が縦に戻ること
+- 開いた画面で一覧を出したまま閉じると、外の画面の一覧が縦・5列で出ること
+
+向きまわりはログで追える。開いた画面でプレイヤーを閉じたとき`Skipping portrait request because the system controls orientation`が出て、向きの要求をせずにすぐ閉じる。
+
+```sh
+xcrun simctl spawn booted log stream --level debug --style compact \
+  --predicate 'subsystem == "com.d0ne1s.vid"'
+```
+
+Device Hubを座標でクリックするときの罠:
+
+- 再生画面の操作ボタンは3秒で消える。「画面をタップして出す → ボタンを押す」は同じターンで続けて送る(別のターンにすると消えた後に押して、画面タップ扱いになる)
+- 画面の左半分(右半分)を続けて2回押すとダブルタップ(10秒戻し・送り)になる。出すタップと押すボタンは反対側の半分にする
+- 閉じた画面で横向きにすると、シミュレータの端末の向きまで回ってDevice Hubの表示と座標がずれることがある。押しても反応しないときは画面を撮って向きを見る(Device > Orientationで戻す)
+- 押せないときは`desktop_ax`の`desc` (「閉じる」「カット」「横向きで表示」「縦向きで表示」)で押すと確実
+
 ## スクリーンショット
 
 ```sh
 mise run shot   # /tmp/vid.png に保存
 ```
 
-シミュレータ内のタップを CLI から自動化する手段はない (osascript はアクセシビリティ権限が必要)。
-タップ後の状態確認はユーザー手動 → AI 側でスクショ確認の流れで行う。
+開いた画面は`xcrun simctl io booted screenshot --display=primary-1 <path>`で撮る。
+
+シミュレータ内のタップはsimctlでは送れない。miniの会話ではStationの`desktop` / `desktop_ax`でDevice Hubを操作できる(上の「iPhone Duo」の罠を参照)。それ以外はユーザー手動 → AI側でスクショ確認の流れで行う。
 
 ## 実機への転送
 

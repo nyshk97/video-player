@@ -25,12 +25,19 @@ struct VideoThumbnailCell: View {
             .clipped()
             .contentShape(Rectangle())
             .onAppear { requestImage() }
-            .onDisappear {
-                if let id = requestID {
-                    PhotoLibraryService.shared.cancelThumbnailRequest(id)
-                    requestID = nil
-                }
+            .onChange(of: pixelSize) { _, _ in
+                // Duoの開閉でマスの大きさが変わったら、その大きさで取り直す（今の画像は届くまで出したまま）
+                cancelRequest()
+                requestImage()
             }
+            .onDisappear { cancelRequest() }
+    }
+
+    private func cancelRequest() {
+        if let id = requestID {
+            PhotoLibraryService.shared.cancelThumbnailRequest(id)
+            requestID = nil
+        }
     }
 
     private var durationLabel: some View {
@@ -45,6 +52,8 @@ struct VideoThumbnailCell: View {
     }
 
     private func requestImage() {
+        // 一覧の幅を測る前（最初の1回の描画）は大きさが0なので取らない
+        guard pixelSize.width > 0, pixelSize.height > 0 else { return }
         requestID = PhotoLibraryService.shared.requestThumbnail(
             for: video.phAsset,
             targetSize: pixelSize

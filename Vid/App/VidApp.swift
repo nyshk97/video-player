@@ -7,6 +7,7 @@ struct VidApp: App {
     var body: some Scene {
         WindowGroup {
             VideoLibraryView()
+                .reportsDeviceHinge()
         }
     }
 }

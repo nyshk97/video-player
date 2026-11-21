@@ -6,6 +6,8 @@ struct PlayerControlsOverlay: View {
     let requestedOrientationLock: OrientationLock
     let actualInterfaceOrientation: UIInterfaceOrientation
     let isOrientationRequestPending: Bool
+    /// falseのとき（Duoの開いた画面）は向きをOSが決めるので、向き切り替えボタンを出さない
+    let canToggleOrientation: Bool
     let onClose: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -32,15 +34,17 @@ struct PlayerControlsOverlay: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
 
-            VStack {
-                Spacer()
-                HStack {
+            if canToggleOrientation {
+                VStack {
                     Spacer()
-                    orientationButton
+                    HStack {
+                        Spacer()
+                        orientationButton
+                    }
                 }
+                .padding(.trailing, 18)
+                .padding(.bottom, 76)
             }
-            .padding(.trailing, 18)
-            .padding(.bottom, 76)
         }
     }
 

@@ -24,6 +24,8 @@ final class OrientationManager {
     private(set) var actualInterfaceOrientation: UIInterfaceOrientation = .portrait
     private(set) var isRequestPending: Bool = false
     private(set) var lastRequestError: String?
+    /// iPhone Duoを開いているか（開いた画面に出ているか）
+    private(set) var isDeviceUnfolded: Bool = false
 
     private var settleTask: Task<Void, Never>?
     private var requestGeneration: Int = 0
@@ -32,6 +34,44 @@ final class OrientationManager {
 
     var isActuallyLandscape: Bool {
         actualInterfaceOrientation.isLandscape
+    }
+
+    /// アプリから縦横を切り替えられるか。
+    ///
+    /// Duoの開いた画面はウインドウとして扱われ、縦横を決めるのは端末の向きになる。
+    /// 向きを絞る`requestGeometryUpdate`は「現在のウインドウモードでは、プログラムによってインターフェイスの方向を
+    /// 変更することが許可されていません」で断られる（`supportedInterfaceOrientations`の許可は効く）。
+    var canControlOrientation: Bool {
+        !isDeviceUnfolded
+    }
+
+    /// Duoの開閉を受け取る。
+    ///
+    /// - 開いたら: 全方向を許可し、端末の向きに任せる。閉じた画面で出した向きの希望（横向き切り替えなど）は
+    ///   シーンに残り、開いた画面ではそれを上書きする要求が断られるので、端末を回しても動かなくなる。
+    ///   全方向の希望（＝希望なし）だけは通るので、開いたときに出し直して消す。
+    /// - 閉じたら: 外の画面を縦から始める（一覧は縦だけ、プレイヤーも縦で開く決まりに合わせ、
+    ///   開く前の横向き固定を持ち越さない）。
+    func updateDeviceUnfolded(_ unfolded: Bool) {
+        guard unfolded != isDeviceUnfolded else { return }
+        isDeviceUnfolded = unfolded
+        settleTask?.cancel()
+        settleTask = nil
+        requestGeneration += 1
+        lastRequestError = nil
+        isRequestPending = false
+        requestedLock = .portrait
+        allowedMask = mask(for: .portrait)
+        refreshActualInterfaceOrientation()
+        updateSupportedOrientationControllers()
+        logger.debug("Device hinge changed. unfolded=\(unfolded, privacy: .public), generation=\(self.requestGeneration, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+
+        guard unfolded, let scene = activeWindowScene else { return }
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: .all)) { [weak self] error in
+            Task { @MainActor [weak self] in
+                self?.logger.error("Clearing orientation preference failed. message=\(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 
     func enterPlayer() {
@@ -60,7 +100,7 @@ final class OrientationManager {
 
     func togglePlayerOrientation() {
         refreshActualInterfaceOrientation()
-        guard !isRequestPending else { return }
+        guard canControlOrientation, !isRequestPending else { return }
 
         if actualInterfaceOrientation.isLandscape {
             requestPortrait(reason: "toggle")
@@ -77,6 +117,10 @@ final class OrientationManager {
     @discardableResult
     private func requestPortraitIfNeeded(reason: String) -> Bool {
         refreshActualInterfaceOrientation()
+        guard canControlOrientation else {
+            logger.debug("Skipping portrait request because the system controls orientation. reason=\(reason, privacy: .public), state=\(self.stateDescription, privacy: .public)")
+            return false
+        }
         if !actualInterfaceOrientation.isLandscape && allowedMask == .portrait && !isRequestPending {
             logger.debug("Skipping portrait request. reason=\(reason, privacy: .public), state=\(self.stateDescription, privacy: .public)")
             return false
@@ -196,11 +240,19 @@ final class OrientationManager {
     }
 
     private func syncRequestedStateToActualOrientation() {
+        guard canControlOrientation else {
+            // 開いた画面の向きに合わせて横を固定すると、閉じたときに外の画面が横のままになる
+            requestedLock = .portrait
+            allowedMask = mask(for: .portrait)
+            return
+        }
         requestedLock = actualInterfaceOrientation.isLandscape ? .landscape : .portrait
         allowedMask = mask(for: requestedLock)
     }
 
+    /// 開いた画面では、どちらの固定でも全方向を許可する（端末の向きに任せる）
     private func mask(for lock: OrientationLock) -> UIInterfaceOrientationMask {
+        guard canControlOrientation else { return .all }
         switch lock {
         case .portrait:
             return .portrait
@@ -210,7 +262,7 @@ final class OrientationManager {
     }
 
     private var stateDescription: String {
-        "requested=\(requestedLock), actual=\(actualInterfaceOrientation.rawValue), allowed=\(maskDescription(allowedMask)), pending=\(isRequestPending)"
+        "requested=\(requestedLock), actual=\(actualInterfaceOrientation.rawValue), allowed=\(maskDescription(allowedMask)), pending=\(isRequestPending), unfolded=\(isDeviceUnfolded)"
     }
 
     private func maskDescription(_ mask: UIInterfaceOrientationMask) -> String {
