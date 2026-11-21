@@ -34,6 +34,11 @@ fi
 xcrun simctl launch booted com.d0ne1s.vid
 """
 
+[tasks.device]
+description = "実機（ペアリング済みの iPhone）に Release で入れて起動（同じ Wi-Fi なら USB 不要。端末のロックを外しておく）"
+usage = 'arg "[device]" help="入れる端末（名前・UDID の一部。all で全部）。1 台なら省略可" default=""'
+run = 'bash scripts/install-ios-device.sh "$usage_device"'
+
 [tasks.boot]
 description = "iPhone Duo シミュレータを起動"
 run = """

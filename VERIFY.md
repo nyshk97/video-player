@@ -157,7 +157,9 @@ mise run shot   # /tmp/vid.png に保存
 
 ## 実機への転送
 
-CLI で実機へ入れる場合:
+いつもは`mise run device`で入れる（Releaseでビルド → インストール → 起動。一度ペアリングした端末なら同じWi-FiでUSB不要。端末のロックを外しておく。Teamは`VYDUR99LAM`で、`VID_DEVELOPMENT_TEAM`で変えられる）。
+
+手で打つ場合:
 
 ```sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun devicectl list devices
