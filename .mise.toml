@@ -35,13 +35,13 @@ xcrun simctl launch booted com.d0ne1s.vid
 """
 
 [tasks.boot]
-description = "iPhone 17 シミュレータを起動"
+description = "iPhone Duo シミュレータを起動"
 run = """
 if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
-xcrun simctl boot "${VID_SIMULATOR_DEVICE:-iPhone 17}" 2>/dev/null || true
-open -a Simulator
+xcrun simctl boot "${VID_SIMULATOR_DEVICE:-iPhone Duo}" 2>/dev/null || true
+open -a Simulator 2>/dev/null || open -b com.apple.dt.Devices  # Xcode 27 から Simulator.app は Device Hub に替わった
 """
 
 [tasks.shot]
@@ -50,5 +50,5 @@ run = """
 if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
-xcrun simctl io booted screenshot /tmp/vid.png
+xcrun simctl io booted screenshot --display=primary /tmp/vid.png
 """
